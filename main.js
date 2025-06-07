@@ -7,15 +7,21 @@ import { Controls } from "./controls.js";
 import { States } from "./states.js";
 import { MouseMove } from "./mouseMove.js";
 
+import { TICKS_PER_SECOND } from "./params.js";
+
 const cityScene = new CityScene();
 const nukeScene = new NukeScene();
 const roomScene = new RoomScene();
 const rendererClass = new Renderer();
 const renderer = rendererClass.getRenderer(); // 렌더러는 유일하므로 클래스에서 빼낸다.
 const windowClass = new Window(renderer, cityScene, nukeScene);
-const controls = new Controls(nukeScene.camera, renderer, windowClass);
+const controls = new Controls(nukeScene, renderer, windowClass);
 const states = new States();
 const mouseMove = new MouseMove(renderer, controls);
+
+const intervalId = setInterval(() => {
+  nukeScene.tick();
+}, 1000 / TICKS_PER_SECOND);
 
 function animate() {
   controls.update();
