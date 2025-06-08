@@ -7,17 +7,20 @@ import {
   LOG_DEBUG,
   COOLING_RATE,
   TICKS_PER_SECOND,
+  PROB_GAMR_OVER,
 } from "./params.js";
 
 // 객체 내부 변수들
 let clock;
 export let dayTime;
 export let coreTemp;
+export let isGameOver;
 
 export function init() {
   clock = new THREE.Clock();
   dayTime = 0; // 단위: 하루
   coreTemp = 25; // 단위: 섭씨
+  isGameOver = false;
 
   initUi();
 }
@@ -29,6 +32,17 @@ export function update() {
     const diff = coreTemp - 25;
     coreTemp -= (diff * COOLING_RATE * 200) / TICKS_PER_SECOND; // 온도가 25도 이상일 때 서서히 감소
   }
+
+  if (coreTemp > 2000) {
+    // 온도가 2000도 이상이 되면 일정 확률로 게임 오버
+    const diff = coreTemp - 2000;
+    if (Math.random() < (diff * PROB_GAMR_OVER) / TICKS_PER_SECOND) {
+      isGameOver = true;
+      if (LOG_DEBUG >= 1) {
+        console.error("Game Over: Core temperature exceeded safe limits!");
+      }
+    }
+  }
 }
 
 export function incrCoreTemp(value = 1) {
@@ -37,7 +51,17 @@ export function incrCoreTemp(value = 1) {
 
 function initUi() {
   // 바 틀(회색)
-  uiClass.createBar(985, 50, 1035, 515, "states.coreTemp", 0, 2000, "up", 8);
+  uiClass.createTempBar(
+    985,
+    50,
+    1035,
+    515,
+    "states.coreTemp",
+    0,
+    2000,
+    "up",
+    8
+  );
 
   // 바 내부(색이 변하는 부분)
   const fillGeo = new THREE.PlaneGeometry(200, 20);

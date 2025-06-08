@@ -13,13 +13,13 @@ import { TICKS_PER_SECOND } from "./params.js";
 
 renderClass.init();
 gameDisplay.init();
+uiClass.init();
 cityScene.init();
 nukeScene.init();
 roomScene.init();
 const renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
 windowHandler.init();
 controls.init();
-uiClass.init();
 states.init();
 mouseMove.init();
 
@@ -33,7 +33,7 @@ const intervalId = setInterval(() => {
 function animate() {
   controls.update();
   cityScene.update();
-  uiClass.updateBars();
+  uiClass.updateTempBars();
 
   // 1. 전체 캔버스를 '레터박스 색'으로 지운다
   // viewport/scissor를 캔버스 전체로 설정

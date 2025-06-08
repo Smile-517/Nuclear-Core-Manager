@@ -13,7 +13,9 @@ import * as mouseMove from "./mouseMove.js";
 let renderer;
 
 let buttons; // UI 중 버튼들을 저장하는 배열
-let bars; // UI 중 바들을 저장하는 배열
+let tempBars; // UI 중 바들을 저장하는 배열
+let throttleBars; // UI 중 스로틀 바들을 저장하는 배열
+let throttleObj; // 스로틀 오브젝트를 저장하는 변수
 let mouseClicked;
 let selectedUi;
 let defaultColor; // 기본 바 색상
@@ -28,7 +30,8 @@ export let camera;
 export function init() {
   renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
   buttons = [];
-  bars = [];
+  tempBars = [];
+  throttleBars = [];
   mouseClicked = false;
   defaultColor = 0x4caf50;
   defaultColorFloat = new THREE.Color(defaultColor);
@@ -50,6 +53,11 @@ export function init() {
   );
   camera.position.set(0, 0, 100); // 카메라 위치 설정
 
+  // light
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+  directionalLight.position.set(0, 0, 100).normalize();
+  scene.add(directionalLight);
+
   renderer.domElement.addEventListener("pointerdown", (event) => {
     mouseClicked = true;
     setSomeUiClicked();
@@ -58,9 +66,157 @@ export function init() {
     mouseClicked = false;
     resetClickedUi();
   });
+
+  _makeThrottle();
 }
 
-export function createBar(
+function _makeThrottle() {
+  const columnGeometry = new THREE.CylinderGeometry(
+    8, // top radius
+    8, // bottom radius
+    40, // height
+    32 // radial segments
+  );
+  const columnMaterial = new THREE.MeshStandardMaterial({
+    color: 0x888888,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: true,
+    depthTest: true,
+  });
+  const columnMesh = new THREE.Mesh(columnGeometry, columnMaterial);
+  columnMesh.position.set(1110, 50 + 16, 2);
+  columnMesh.rotation.z = Math.PI / 2; // X축을 기준으로 90도 회전
+
+  const leftGeometry = new THREE.CylinderGeometry(
+    20, // top radius
+    12, // bottom radius
+    30, // height
+    32 // radial segments
+  );
+  const leftMaterial = new THREE.MeshStandardMaterial({
+    color: 0xdfdfdf,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: true,
+    depthTest: true,
+  });
+  const leftMesh = new THREE.Mesh(leftGeometry, leftMaterial);
+  columnMesh.add(leftMesh);
+  leftMesh.position.set(0, 20, 2);
+
+  const rightGeometry = new THREE.CylinderGeometry(
+    12, // top radius
+    20, // bottom radius
+    30, // height
+    32 // radial segments
+  );
+  const rightMesh = new THREE.Mesh(rightGeometry, leftMaterial);
+  columnMesh.add(rightMesh);
+  rightMesh.position.set(0, -20, 2);
+
+  scene.add(columnMesh);
+  throttleObj = columnMesh;
+}
+
+export function createThrottleBar(
+  botLeftX,
+  botLeftY,
+  topRightX,
+  topRightY,
+  value,
+  min,
+  max,
+  direction,
+  offset = 32
+) {
+  // 바깥쪽
+  const width = topRightX - botLeftX;
+  const height = topRightY - botLeftY;
+
+  const outerGeometry = new THREE.PlaneGeometry(width, height);
+  const outerMaterial = new THREE.MeshBasicMaterial({
+    color: 0x444444,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: false,
+  });
+
+  const outerMesh = new THREE.Mesh(outerGeometry, outerMaterial);
+  outerMesh.position.set(botLeftX + width / 2, botLeftY + height / 2, 0);
+
+  // 안쪽
+  const innerWidth = width - offset; // 안쪽 바의 너비는 바깥쪽 바의 80%
+  const innerHeight = height - offset; // 안쪽 바의 높이는 바깥쪽 바의 80%
+  const innerGeometry = new THREE.PlaneGeometry(innerWidth, innerHeight);
+  const innerMaterial = new THREE.MeshBasicMaterial({
+    color: 0x111111,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: false,
+  });
+
+  const innerMesh = new THREE.Mesh(innerGeometry, innerMaterial);
+  innerMesh.position.set(
+    botLeftX + width / 2,
+    botLeftY + height / 2,
+    0.1 // 바깥쪽 메쉬보다 약간 위에 위치
+  );
+
+  const bar = {
+    outerMesh: outerMesh,
+    innerMesh: innerMesh,
+    outerWidth: width,
+    outerHeight: height,
+    innerWidth: innerWidth,
+    innerHeight: innerHeight,
+    value: value, // 이 바가 나타내는 값 (alias)
+    min: min,
+    max: max,
+    direction: direction, // "up", "down", "left", "right"
+    offset: offset,
+  };
+
+  throttleBars.push(bar);
+  scene.add(outerMesh);
+  scene.add(innerMesh);
+}
+
+export function updateThrottleBars() {
+  for (const bar of throttleBars) {
+    let value = eval(bar.value);
+    // 바의 현재 값이 최소값과 최대값 사이에 있는지 확인
+    if (value < bar.min) {
+      value = bar.min;
+    } else if (value > bar.max) {
+      value = bar.max;
+    }
+    const ratio = (value - bar.min) / (bar.max - bar.min);
+
+    // 안쪽 바의 크기를 현재 값에 맞게 조정
+    switch (bar.direction) {
+      case "up":
+        // 바 안쪽의 실제 이동 가능한 높이
+        const travel = bar.innerHeight;
+        // 바의 아래 끝 위치 (outerMesh 중심 – outerHeight/2 + offset/2)
+        const minY = bar.outerMesh.position.y - bar.innerHeight / 2;
+        // 실제 레버 위치는 minY에서 travel만큼 올라간 위치의 중간
+        // (여기선 travel의 1/2 만큼 올린 뒤, ratio만큼 더 올립니다)
+        throttleObj.position.y = minY + travel * ratio;
+        break;
+      case "down":
+        break;
+      case "left":
+        break;
+      case "right":
+        break;
+    }
+  }
+}
+
+export function createTempBar(
   botLeftX,
   botLeftY,
   topRightX,
@@ -121,13 +277,13 @@ export function createBar(
     offset: offset,
   };
 
-  bars.push(bar);
+  tempBars.push(bar);
   scene.add(outerMesh);
   scene.add(innerMesh);
 }
 
-export function updateBars() {
-  for (const bar of bars) {
+export function updateTempBars() {
+  for (const bar of tempBars) {
     let value = eval(bar.value);
     // 바의 현재 값이 최소값과 최대값 사이에 있는지 확인
     if (value < bar.min) {

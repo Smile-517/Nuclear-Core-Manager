@@ -46,7 +46,7 @@ let numControlRods;
 let rodRadius; // 연료봉, 제어봉의 반지름
 let rodOffset; // 봉의 위치 오프셋 (원자로 표면 위에 위치하도록), z-fighting 회피.
 let controlRodOperation; // 제어봉에게 내리는 명령의 상태: -1: 내리기, 0: 유지, 1: 올리기
-let controlRodPosY;
+export let controlRodPosY;
 
 // 중성자 관련 변수들
 let maxNeutrons;
@@ -119,6 +119,17 @@ export function init() {
   _setupReactor();
   _setupRods();
   if (RENDER_DEBUG) _setupHelpers();
+
+  uiClass.createThrottleBar(
+    1085,
+    50,
+    1135,
+    515,
+    "nukeScene.controlRodPosY",
+    0,
+    4,
+    "up"
+  );
 }
 
 // 원형 스프라이트 캔버스 생성
@@ -144,7 +155,7 @@ function _setupCamera() {
 
 function _setupLights() {
   // ambient light (전체 조명)
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.075); // 약한 전체 조명
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // 약한 전체 조명
   scene.add(ambientLight);
 
   // spotlight (원자로를 비추는 조명)
@@ -154,6 +165,8 @@ function _setupLights() {
   spotLight.angle = Math.PI / 4; // 조명의 각도 설정
   spotLight.penumbra = 0.4; // 페넘브라 설정 (부드러운 그림자)
   spotLight.intensity = 400; // 조명 강도 설정
+  spotLight.shadow.mapSize.width = 2048;
+  spotLight.shadow.mapSize.height = 2048;
   scene.add(spotLight);
 }
 
@@ -174,9 +187,9 @@ function _setupReactor() {
     256
   );
   const reactorMaterial = new THREE.MeshStandardMaterial({
-    color: 0x555555,
+    color: 0x333333,
     metalness: 0.8,
-    roughness: 0.4,
+    roughness: 0.5,
     transparent: true,
     opacity: 0.25,
     depthWrite: false,
@@ -232,11 +245,22 @@ function _setupRods() {
   const r = rodRadius;
   const h = coreHeight - 0.01;
   const fuelRodGeometry = new THREE.CylinderGeometry(r, r, h, 32);
-  const fuelRodMaterial = new THREE.MeshStandardMaterial({ color: 0x3fdf7f }); // 금색
+  const fuelRodSphereGeometry = new THREE.SphereGeometry(r, 32, 32);
+  const fuelRodMaterial = new THREE.MeshStandardMaterial({
+    color: 0x7f7f7f,
+    metalness: 0.8,
+    roughness: 0.4,
+  });
   for (let i = 0; i < rodPositions.length; i++) {
     if (whichRods[i] != 1) continue;
     const [x, z] = rodPositions[i];
     const fuelRod = new THREE.Mesh(fuelRodGeometry, fuelRodMaterial);
+    const fuelRodSphere = new THREE.Mesh(
+      fuelRodSphereGeometry,
+      fuelRodMaterial
+    );
+    fuelRod.add(fuelRodSphere); // 연료봉의 상단에 구체를 추가하여 시각적으로 강조
+    fuelRodSphere.position.set(0, h / 2, 0); // 구체를 봉의 상단에 위치시킴
     fuelRod.position.set(x, coreHeight / 2 + rodOffset, z); // X, Z축으로 간격을 두고 배치
     fuelRod.castShadow = false;
     scene.add(fuelRod);
@@ -244,13 +268,22 @@ function _setupRods() {
 
   // 행렬을 이용해 제어봉 생성
   const controlRodGeometry = new THREE.CylinderGeometry(r, r, h, 32);
+  const controlRodSphereGeometry = new THREE.SphereGeometry(r, 32, 32);
   const controlRodMaterial = new THREE.MeshStandardMaterial({
-    color: 0x0000ff,
-  }); // 파란색
+    color: 0x9fdf7f,
+    metalness: 0.8,
+    roughness: 0.4,
+  });
   for (let i = 0; i < rodPositions.length; i++) {
     if (whichRods[i] != 2) continue;
     const [x, z] = rodPositions[i];
     const controlRod = new THREE.Mesh(controlRodGeometry, controlRodMaterial);
+    const controlRodSphere = new THREE.Mesh(
+      controlRodSphereGeometry,
+      controlRodMaterial
+    );
+    controlRod.add(controlRodSphere); // 제어봉의 상단에 구체를 추가하여 시각적으로 강조
+    controlRodSphere.position.set(0, h / 2, 0); // 구체를 봉의 상단에 위치시킴
     controlRod.position.set(x, coreHeight / 2 + rodOffset, z); // X, Z축으로 간격을 두고 배치
     controlRod.castShadow = false;
     controlRods.push(controlRod);
@@ -295,6 +328,7 @@ export function tick() {
       const controlRod = controlRods[i];
       controlRod.position.y = controlRodPosY + coreHeight / 2 + rodOffset;
     }
+    uiClass.updateThrottleBars();
   }
 
   // 각 중성자들에 대한 계산 시작
