@@ -449,6 +449,14 @@ export class NukeScene {
   }
 
   setUis() {
-    this.ui.createButton(1795, 440, 1845, 490, "assets/textures/tmpUi.png");
+    this.ui.createButton(
+      1795,
+      440,
+      1845,
+      490,
+      "assets/textures/tmpUi0.png",
+      "assets/textures/tmpUi1.png",
+      "assets/textures/tmpUi2.png"
+    );
   }
 }

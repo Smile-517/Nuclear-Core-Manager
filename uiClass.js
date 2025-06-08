@@ -13,44 +13,51 @@ export class UiClass {
   }
 
   // botLeftX, botLeftY, topRightX, topRightY, texture가 인수로 들어오면 그에 맞는 UI를 생성하는 함수
-  createButton(botLeftX, botLeftY, topRightX, topRightY, texture) {
-    // 1920x1080 기준 좌표 -> 현재 화면 기준 좌표로 변환
+  createButton(
+    botLeftX,
+    botLeftY,
+    topRightX,
+    topRightY,
+    texture0,
+    texture1,
+    texture2
+  ) {
     const inputs = {
       botLeftX: botLeftX,
       botLeftY: botLeftY,
       topRightX: topRightX,
       topRightY: topRightY,
     };
-    const rect = this.gameDisplay.calcDisplay(
-      botLeftX,
-      botLeftY,
-      topRightX,
-      topRightY
-    );
-    const originalSize = { w: rect.width, h: rect.height };
+    const width = topRightX - botLeftX;
+    const height = topRightY - botLeftY;
 
-    const geometry = new THREE.PlaneGeometry(rect.width, rect.height);
+    const geometry = new THREE.PlaneGeometry(width, height);
     const loader = new THREE.TextureLoader();
-    const tex = loader.load(texture);
+    const tex0 = loader.load(texture0);
+    const tex1 = loader.load(texture1);
+    const tex2 = loader.load(texture2);
     const material = new THREE.MeshBasicMaterial({
-      map: tex,
+      map: tex0,
       transparent: true,
       side: THREE.DoubleSide,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(rect.x + rect.width / 2, rect.y + rect.height / 2, 0);
+    mesh.position.set(botLeftX + width / 2, botLeftY + height / 2, 0);
 
     const ui = {
       inputs: inputs,
-      originalSize: originalSize,
       mesh: mesh,
+      tex0: tex0,
+      tex1: tex1,
+      tex2: tex2,
     };
 
     this.uis.push(ui);
   }
 
-  updatePosition() {
+  // 마우스 움직임이 감지되면 ui 위에 있는지 확인하는 함수
+  isMouseOver(mouseX, mouseY) {
     for (const ui of this.uis) {
       const rect = this.gameDisplay.calcDisplay(
         ui.inputs.botLeftX,
@@ -58,15 +65,15 @@ export class UiClass {
         ui.inputs.topRightX,
         ui.inputs.topRightY
       );
-      ui.mesh.position.set(
-        rect.x + rect.width / 2,
-        rect.y + rect.height / 2,
-        0
-      );
-
-      const scaleX = rect.width / ui.originalSize.w;
-      const scaleY = rect.height / ui.originalSize.h;
-      ui.mesh.scale.set(scaleX, scaleY, 1);
+      if (
+        mouseX >= rect.x &&
+        mouseX <= rect.x + rect.width &&
+        mouseY >= rect.y &&
+        mouseY <= rect.y + rect.height
+      ) {
+        return ui; // 해당 UI를 반환
+      }
     }
+    return null; // 어떤 UI에도 해당하지 않으면 null 반환
   }
 }

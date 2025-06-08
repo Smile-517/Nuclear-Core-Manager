@@ -2,12 +2,14 @@ export class MouseMove {
   // 객체 내부 변수들
   renderer;
   controls;
+  uiClass;
 
   mouseClicked = false;
 
-  constructor(renderer, controls) {
+  constructor(renderer, controls, uiClass) {
     this.renderer = renderer;
     this.controls = controls;
+    this.uiClass = uiClass;
 
     this.renderer.domElement.addEventListener("pointerdown", (event) => {
       this.mouseClicked = true;
@@ -27,6 +29,8 @@ export class MouseMove {
       if (!this.mouseClicked) {
         this.controls.setOrbicControls(mouseX, flippedY);
       }
+
+      uiClass
     });
   }
 }

@@ -17,11 +17,17 @@ const nukeScene = new NukeScene();
 const roomScene = new RoomScene();
 const rendererClass = new Renderer();
 const renderer = rendererClass.getRenderer(); // 렌더러는 유일하므로 클래스에서 빼낸다.
-const windowClass = new Window(gameDisplay, renderer, cityScene, nukeScene, roomScene);
+const windowClass = new Window(
+  gameDisplay,
+  renderer,
+  cityScene,
+  nukeScene,
+  roomScene
+);
 const controls = new Controls(nukeScene, renderer, windowClass);
 const states = new States();
-const mouseMove = new MouseMove(renderer, controls);
 const uiClass = new UiClass(gameDisplay, renderer);
+const mouseMove = new MouseMove(renderer, controls, uiClass);
 
 nukeScene.initUi(uiClass);
 
@@ -35,7 +41,6 @@ function animate() {
   controls.update();
   states.update();
   cityScene.update(states);
-  uiClass.updatePosition();
 
   // 1. 전체 캔버스를 '레터박스 색'으로 지운다
   // viewport/scissor를 캔버스 전체로 설정
@@ -72,9 +77,9 @@ function animate() {
   renderer.render(roomScene.scene, roomScene.camera);
 
   // 6. UI 렌더링
-  rect = windowClass.gameDisplay;
-  renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
-  renderer.setScissor(0, 0, window.innerWidth, window.innerHeight);
+  rect = gameDisplay.rect;
+  renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
+  renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
   renderer.render(windowClass.scene, windowClass.camera);
 
   requestAnimationFrame(animate);

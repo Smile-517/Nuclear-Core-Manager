@@ -33,8 +33,8 @@ export class Window {
     // camera
     this.camera = new THREE.OrthographicCamera(
       0, // left
-      window.innerWidth, // right
-      window.innerHeight, // top
+      1920, // right
+      1080, // top
       0, // bottom
       -1000, // near
       1000 // far
@@ -47,12 +47,6 @@ export class Window {
   }
 
   onResize() {
-    this.camera.left = 0;
-    this.camera.right = window.innerWidth;
-    this.camera.top = window.innerHeight;
-    this.camera.bottom = 0;
-    this.camera.updateProjectionMatrix();
-
     this.gameDisplay.update();
     if (LOG_DEBUG >= 4) {
       console.log("Window resized:", this.gameDisplay.rect);
