@@ -1,38 +1,43 @@
-export class MouseMove {
-  // 객체 내부 변수들
-  renderer;
-  controls;
-  uiClass;
+import * as gameDisplay from "./gameDisplay.js";
+import * as windowHandler from "./windowHandler.js";
+import * as cityScene from "./cityScene.js";
+import * as nukeScene from "./nukeScene.js";
+import * as roomScene from "./roomScene.js";
+import * as renderClass from "./renderClass.js";
+import * as controls from "./controls.js";
+import * as states from "./states.js";
+import * as uiClass from "./uiClass.js";
 
-  mouseClicked;
+let renderer;
 
-  constructor(renderer, controls, uiClass) {
-    this.renderer = renderer;
-    this.controls = controls;
-    this.uiClass = uiClass;
-    this.mouseClicked = false;
+// 객체 내부 변수들
+export let mouseClicked;
+export let mouseX;
+export let mouseY;
 
-    this.renderer.domElement.addEventListener("pointerdown", (event) => {
-      this.mouseClicked = true;
-    });
-    this.renderer.domElement.addEventListener("pointerup", (event) => {
-      this.mouseClicked = false;
-    });
+export function init() {
+  renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
+  mouseClicked = false;
 
-    this.renderer.domElement.addEventListener("pointermove", (event) => {
-      const canvasRect = this.renderer.domElement.getBoundingClientRect();
-      const mouseX = event.clientX - canvasRect.left;
-      const mouseY = event.clientY - canvasRect.top;
-      const canvasHeight = canvasRect.height;
-      const flippedY = canvasHeight - mouseY;
+  renderer.domElement.addEventListener("pointerdown", (event) => {
+    mouseClicked = true;
+  });
+  renderer.domElement.addEventListener("pointerup", (event) => {
+    mouseClicked = false;
+  });
 
-      // orbitControls를 이용하고 있다가 Nuke창을 벗어났을 때에도 orbitControls가 끊기지 않도록
-      if (!this.mouseClicked) {
-        this.controls.setOrbicControls(mouseX, flippedY);
-      }
+  renderer.domElement.addEventListener("pointermove", (event) => {
+    const canvasRect = renderer.domElement.getBoundingClientRect();
+    mouseX = event.clientX - canvasRect.left;
+    const mouseY0 = event.clientY - canvasRect.top;
+    const canvasHeight = canvasRect.height;
+    mouseY = canvasHeight - mouseY0;
 
-      this.uiClass.setCoordinates(mouseX, flippedY);
-      this.uiClass.isMouseOver();
-    });
-  }
+    // orbitControls를 이용하고 있다가 Nuke창을 벗어났을 때에도 orbitControls가 끊기지 않도록
+    if (!mouseClicked) {
+      controls.setOrbicControls(mouseX, mouseY);
+    }
+
+    uiClass.isMouseOver();
+  });
 }

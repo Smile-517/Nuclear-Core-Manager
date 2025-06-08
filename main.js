@@ -1,37 +1,30 @@
-import { GameDisplay } from "./gameDisplay.js";
-import { Window } from "./window.js";
-import { CityScene } from "./cityScene.js";
-import { NukeScene } from "./nukeScene.js";
-import { RoomScene } from "./roomScene.js";
-import { Renderer } from "./renderer.js";
-import { Controls } from "./controls.js";
-import { States } from "./states.js";
-import { MouseMove } from "./mouseMove.js";
-import { UiClass } from "./uiClass.js";
+import * as gameDisplay from "./gameDisplay.js";
+import * as windowHandler from "./windowHandler.js";
+import * as cityScene from "./cityScene.js";
+import * as nukeScene from "./nukeScene.js";
+import * as roomScene from "./roomScene.js";
+import * as renderClass from "./renderClass.js";
+import * as controls from "./controls.js";
+import * as states from "./states.js";
+import * as mouseMove from "./mouseMove.js";
+import * as uiClass from "./uiClass.js";
 
 import { TICKS_PER_SECOND } from "./params.js";
 
-const gameDisplay = new GameDisplay();
-const cityScene = new CityScene();
-const nukeScene = new NukeScene();
-const roomScene = new RoomScene();
-const rendererClass = new Renderer();
-const renderer = rendererClass.getRenderer(); // 렌더러는 유일하므로 클래스에서 빼낸다.
-const windowClass = new Window(
-  gameDisplay,
-  renderer,
-  cityScene,
-  nukeScene,
-  roomScene
-);
-const controls = new Controls(nukeScene, renderer, windowClass);
-const states = new States();
-const uiClass = new UiClass(gameDisplay, renderer);
-const mouseMove = new MouseMove(renderer, controls, uiClass);
+renderClass.init();
+gameDisplay.init();
+cityScene.init();
+nukeScene.init();
+roomScene.init();
+const renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
+windowHandler.init();
+controls.init();
+states.init();
+uiClass.init();
+mouseMove.init();
 
-nukeScene.initUi(uiClass);
-
-windowClass.addUiToScene(uiClass);
+nukeScene.initUi();
+windowHandler.addUiToScene();
 
 const intervalId = setInterval(() => {
   nukeScene.tick();
@@ -40,7 +33,7 @@ const intervalId = setInterval(() => {
 function animate() {
   controls.update();
   states.update();
-  cityScene.update(states);
+  cityScene.update();
 
   // 1. 전체 캔버스를 '레터박스 색'으로 지운다
   // viewport/scissor를 캔버스 전체로 설정
@@ -59,19 +52,19 @@ function animate() {
   renderer.clear();
 
   // 3. 도시 씬을 렌더링
-  rect = windowClass.cityDisplay;
+  rect = windowHandler.cityDisplay;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
   renderer.render(cityScene.scene, cityScene.camera);
 
   // 4. 핵 코어 씬을 렌더링
-  rect = windowClass.nukeDisplay;
+  rect = windowHandler.nukeDisplay;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
   renderer.render(nukeScene.scene, nukeScene.camera);
 
   // 5. 방 씬을 렌더링
-  rect = windowClass.roomDisplay;
+  rect = windowHandler.roomDisplay;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
   renderer.render(roomScene.scene, roomScene.camera);
@@ -80,7 +73,7 @@ function animate() {
   rect = gameDisplay.rect;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
-  renderer.render(windowClass.scene, windowClass.camera);
+  renderer.render(windowHandler.scene, windowHandler.camera);
 
   requestAnimationFrame(animate);
 }

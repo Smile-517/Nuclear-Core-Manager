@@ -2,17 +2,15 @@ import * as THREE from "three";
 
 import { LEN_ONE_DAY } from "./params.js";
 
-export class States {
-  // 객체 내부 변수들
-  clock;
-  dayTime;
+// 객체 내부 변수들
+let clock;
+export let dayTime;
 
-  constructor() {
-    this.clock = new THREE.Clock();
-    this.dayTime = 0; // 단위: 하루
-  }
+export function init() {
+  clock = new THREE.Clock();
+  dayTime = 0; // 단위: 하루
+}
 
-  update() {
-    this.dayTime = this.clock.getElapsedTime() / LEN_ONE_DAY;
-  }
+export function update() {
+  dayTime = clock.getElapsedTime() / LEN_ONE_DAY;
 }

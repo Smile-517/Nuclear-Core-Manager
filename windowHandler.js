@@ -1,0 +1,86 @@
+import * as THREE from "three";
+
+import * as gameDisplay from "./gameDisplay.js";
+import * as cityScene from "./cityScene.js";
+import * as nukeScene from "./nukeScene.js";
+import * as roomScene from "./roomScene.js";
+import * as renderClass from "./renderClass.js";
+import * as controls from "./controls.js";
+import * as states from "./states.js";
+import * as mouseMove from "./mouseMove.js";
+import * as uiClass from "./uiClass.js";
+
+import { ASPECT_RATIO, LOG_DEBUG } from "./params.js";
+
+let renderer;
+
+// 객체 내부 변수들
+export let cityDisplay;
+export let nukeDisplay;
+export let roomDisplay;
+
+// 16:9 게임 영역에 UI를 그리기 위한 씬
+export let scene;
+export let camera;
+
+export function init() {
+  renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
+
+  // scene
+  scene = new THREE.Scene();
+  scene.background = null;
+
+  // camera
+  camera = new THREE.OrthographicCamera(
+    0, // left
+    1920, // right
+    1080, // top
+    0, // bottom
+    -1000, // near
+    1000 // far
+  );
+  camera.position.set(0, 0, 100); // 카메라 위치 설정
+
+  // 화면 크기들을 계산
+  onResize();
+  window.addEventListener("resize", () => this.onResize(), false);
+}
+
+export function onResize() {
+  gameDisplay.update();
+  if (LOG_DEBUG >= 4) {
+    console.log("Window resized:", gameDisplay.rect);
+  }
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  renderer.setSize(w, h);
+
+  // 여기서 각 창들의 위치와 크기를 변경할 수 있다.
+  cityDisplay = gameDisplay.calcRect(985, 565, 1870, 1030);
+  nukeDisplay = gameDisplay.calcRect(1185, 50, 1870, 515);
+  roomDisplay = gameDisplay.calcRect(100, 200, 935, 1030);
+  if (LOG_DEBUG >= 4) {
+    console.log("City display:", cityDisplay);
+    console.log("Nuke display:", nukeDisplay);
+    console.log("Room display:", roomDisplay);
+  }
+
+  // 카메라들의 비율을 업데이트
+  cityScene.camera.aspect = cityDisplay.width / cityDisplay.height;
+  nukeScene.camera.aspect = nukeDisplay.width / nukeDisplay.height;
+  roomScene.camera.aspect = roomDisplay.width / roomDisplay.height;
+  cityScene.camera.updateProjectionMatrix();
+  nukeScene.camera.updateProjectionMatrix();
+  roomScene.camera.updateProjectionMatrix();
+  if (LOG_DEBUG >= 4) {
+    console.log("City camera aspect:", cityScene.camera.aspect);
+    console.log("Nuke camera aspect:", nukeScene.camera.aspect);
+    console.log("Room camera aspect:", roomScene.camera.aspect);
+  }
+}
+
+export function addUiToScene() {
+  for (const ui of uiClass.uis) {
+    scene.add(ui.mesh);
+  }
+}
