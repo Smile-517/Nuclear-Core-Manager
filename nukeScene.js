@@ -17,6 +17,8 @@ import {
   MAX_NEUTRONS,
   P_NEUTRON,
   CONTROL_ROD_SPEED,
+  FUEL_ROD_HEAT,
+  CONTROL_ROD_HEAT,
 } from "./params.js";
 
 let renderer;
@@ -328,6 +330,7 @@ export function tick() {
       if (distance < rodRadius) {
         // 충돌 발생
         collided = true;
+        states.incrCoreTemp(FUEL_ROD_HEAT); // 원자로 온도 증가
         _removeNeutron(i);
         // P_NEUTRON의 확률로 3개의 중성자를 방출
         if (Math.random() < P_NEUTRON) {
@@ -361,6 +364,7 @@ export function tick() {
       if (distance < rodRadius) {
         // 충돌 발생
         collided = true;
+        states.incrCoreTemp(CONTROL_ROD_HEAT); // 원자로 온도 증가
         _removeNeutron(i);
         break;
       }
@@ -468,8 +472,16 @@ export function switchCamera() {
     cameraMode = 1;
     oldCameraPos = camera.position.clone();
     const size = 2;
-    const aspect = windowHandler.nukeDisplay.width / windowHandler.nukeDisplay.height;
-    camera = new THREE.OrthographicCamera(-size * aspect, size * aspect, size, -size, 0.1, 1000);
+    const aspect =
+      windowHandler.nukeDisplay.width / windowHandler.nukeDisplay.height;
+    camera = new THREE.OrthographicCamera(
+      -size * aspect,
+      size * aspect,
+      size,
+      -size,
+      0.1,
+      1000
+    );
     camera.position.set(0, 9, 0);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     camera.updateProjectionMatrix();

@@ -19,27 +19,8 @@ export let cityDisplay;
 export let nukeDisplay;
 export let roomDisplay;
 
-// 16:9 게임 영역에 UI를 그리기 위한 씬
-export let scene;
-export let camera;
-
 export function init() {
   renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
-
-  // scene
-  scene = new THREE.Scene();
-  scene.background = null;
-
-  // camera
-  camera = new THREE.OrthographicCamera(
-    0, // left
-    1920, // right
-    1080, // top
-    0, // bottom
-    -1000, // near
-    1000 // far
-  );
-  camera.position.set(0, 0, 100); // 카메라 위치 설정
 
   // 화면 크기들을 계산
   onResize();
@@ -76,11 +57,5 @@ export function onResize() {
     console.log("City camera aspect:", cityScene.camera.aspect);
     console.log("Nuke camera aspect:", nukeScene.camera.aspect);
     console.log("Room camera aspect:", roomScene.camera.aspect);
-  }
-}
-
-export function addUiToScene() {
-  for (const ui of uiClass.uis) {
-    scene.add(ui.mesh);
   }
 }

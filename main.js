@@ -19,21 +19,21 @@ roomScene.init();
 const renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
 windowHandler.init();
 controls.init();
-states.init();
 uiClass.init();
+states.init();
 mouseMove.init();
 
 nukeScene.initUi();
-windowHandler.addUiToScene();
 
 const intervalId = setInterval(() => {
   nukeScene.tick();
+  states.update();
 }, 1000 / TICKS_PER_SECOND);
 
 function animate() {
   controls.update();
-  states.update();
   cityScene.update();
+  uiClass.updateBars();
 
   // 1. 전체 캔버스를 '레터박스 색'으로 지운다
   // viewport/scissor를 캔버스 전체로 설정
@@ -73,7 +73,7 @@ function animate() {
   rect = gameDisplay.rect;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
-  renderer.render(windowHandler.scene, windowHandler.camera);
+  renderer.render(uiClass.scene, uiClass.camera);
 
   requestAnimationFrame(animate);
 }
