@@ -10,6 +10,8 @@ import {
 } from "./params.js";
 
 export class NukeScene {
+  ui; // UI 객체
+
   // 객체 내부 변수들
   scene;
   camera;
@@ -439,5 +441,14 @@ export class NukeScene {
     // 3) activeCount 증가
     this.activeCount++;
     this.inUse[dstIdx] = true;
+  }
+
+  initUi(ui) {
+    this.ui = ui;
+    this.setUis();
+  }
+
+  setUis() {
+    this.ui.createButton(1795, 440, 1845, 490, "assets/textures/tmpUi.png");
   }
 }

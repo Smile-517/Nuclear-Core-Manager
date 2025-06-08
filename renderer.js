@@ -10,6 +10,7 @@ export class Renderer {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setScissorTest(true);
+    this.renderer.autoClear = false;
     document.body.appendChild(this.renderer.domElement);
   }
 
