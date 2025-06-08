@@ -56,9 +56,9 @@ export class Window {
     this.renderer.setSize(w, h);
 
     // 여기서 각 창들의 위치와 크기를 변경할 수 있다.
-    this.cityDisplay = this.gameDisplay.calcDisplay(985, 565, 1870, 1030);
-    this.nukeDisplay = this.gameDisplay.calcDisplay(1185, 50, 1870, 515);
-    this.roomDisplay = this.gameDisplay.calcDisplay(100, 200, 935, 1030);
+    this.cityDisplay = this.gameDisplay.calcRect(985, 565, 1870, 1030);
+    this.nukeDisplay = this.gameDisplay.calcRect(1185, 50, 1870, 515);
+    this.roomDisplay = this.gameDisplay.calcRect(100, 200, 935, 1030);
     if (LOG_DEBUG >= 4) {
       console.log("City display:", this.cityDisplay);
       console.log("Nuke display:", this.nukeDisplay);

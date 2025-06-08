@@ -4,12 +4,13 @@ export class MouseMove {
   controls;
   uiClass;
 
-  mouseClicked = false;
+  mouseClicked;
 
   constructor(renderer, controls, uiClass) {
     this.renderer = renderer;
     this.controls = controls;
     this.uiClass = uiClass;
+    this.mouseClicked = false;
 
     this.renderer.domElement.addEventListener("pointerdown", (event) => {
       this.mouseClicked = true;
@@ -30,7 +31,8 @@ export class MouseMove {
         this.controls.setOrbicControls(mouseX, flippedY);
       }
 
-      uiClass
+      this.uiClass.setCoordinates(mouseX, flippedY);
+      this.uiClass.isMouseOver();
     });
   }
 }

@@ -11,10 +11,12 @@ import {
 
 export class NukeScene {
   ui; // UI 객체
+  controls;
 
   // 객체 내부 변수들
   scene;
   camera;
+  cameraMode; // 카메라 모드: 0: perspective, 1: orthographic
   renderer;
   spotLight;
   reactor;
@@ -49,6 +51,7 @@ export class NukeScene {
 
   constructor() {
     // 변수 초기화
+    this.cameraMode = 0; // perspective
     this.coreRadius = 2;
     this.coreHeight = 4;
     this.rodPositions = [];
@@ -110,6 +113,10 @@ export class NukeScene {
     this._setupReactor();
     this._setupRods();
     if (RENDER_DEBUG) this._setupHelpers();
+  }
+
+  setControls(controls) {
+    this.controls = controls;
   }
 
   // 원형 스프라이트 캔버스 생성
@@ -456,7 +463,26 @@ export class NukeScene {
       490,
       "assets/textures/tmpUi0.png",
       "assets/textures/tmpUi1.png",
-      "assets/textures/tmpUi2.png"
+      "assets/textures/tmpUi2.png",
+      this.switchCamera.bind(this)
     );
+  }
+
+  switchCamera() {
+    if (this.cameraMode === 0) {
+      // perspective에서 orthographic으로 전환
+      this.cameraMode = 1;
+      this.camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+      this.camera.position.set(0, 9, 0);
+    } else {
+      // orthographic에서 perspective로 전환
+      this.cameraMode = 0;
+      this.camera = new THREE.PerspectiveCamera();
+      this.camera.position.set(0, 9, 0); // 초기 위치 설정
+      // this.camera.lookAt(new THREE.Vector3(0, 0, 0));  // 여기 말고 OrbitControls에서 설정해야 함
+      this.controls.settingOrbitControls(this.renderer);
+    }
+    this.camera.updateProjectionMatrix();
+    this.scene.add(this.camera);
   }
 }

@@ -19,17 +19,24 @@ export class Controls {
     this.isWDown = false;
     this.isSDown = false;
 
+    this.settingOrbitControls(renderer);
+
+    this._addStartupListener();
+    this._addControlRodsListener();
+
+    this.nukeScene.setControls(this);
+  }
+
+  settingOrbitControls(renderer) {
+    this.renderer = renderer;
     this.orbitControls = new OrbitControls(
       this.nukeScene.camera,
-      renderer.domElement
+      this.renderer.domElement
     );
     this.orbitControls.enableDamping = true; // 관성효과, 바로 멈추지 않고 부드럽게 멈춤
     this.orbitControls.dampingFactor = 0.05; // 감속 정도, 크면 더 빨리 감속, default = 0.05
     this.orbitControls.enablePan = false; // 팬 기능 비활성화
     this.orbitControls.target.set(0, 2, 0); // 초기 위치 설정
-
-    this._addStartupListener();
-    this._addControlRodsListener();
   }
 
   _addStartupListener() {
