@@ -25,6 +25,7 @@ let renderer;
 export let scene;
 export let camera;
 let cameraMode; // 카메라 모드: 0: perspective, 1: orthographic
+let oldCameraPos;
 let spotLight;
 let reactor;
 let axesHelper;
@@ -235,7 +236,7 @@ function _setupRods() {
     const [x, z] = rodPositions[i];
     const fuelRod = new THREE.Mesh(fuelRodGeometry, fuelRodMaterial);
     fuelRod.position.set(x, coreHeight / 2 + rodOffset, z); // X, Z축으로 간격을 두고 배치
-    fuelRod.castShadow = true;
+    fuelRod.castShadow = false;
     scene.add(fuelRod);
   }
 
@@ -249,7 +250,7 @@ function _setupRods() {
     const [x, z] = rodPositions[i];
     const controlRod = new THREE.Mesh(controlRodGeometry, controlRodMaterial);
     controlRod.position.set(x, coreHeight / 2 + rodOffset, z); // X, Z축으로 간격을 두고 배치
-    controlRod.castShadow = true;
+    controlRod.castShadow = false;
     controlRods.push(controlRod);
     scene.add(controlRod);
   }
@@ -337,8 +338,8 @@ export function tick() {
             const vY = 2 * Math.random() - 1; // -1 ~ 1 사이의 랜덤 Y 속도
             const vZ = Math.sin(angle);
             // x와 z는 v의 방향 쪽으로 좀 더 이동
-            const posX = rx + vX * rodRadius * 1.5;
-            const posZ = rz + vZ * rodRadius * 1.5;
+            const posX = rx + vX * rodRadius * 1.01;
+            const posZ = rz + vZ * rodRadius * 1.01;
             _makeNeutron(posX, y, posZ, vX, vY, vZ);
           }
         }
@@ -463,17 +464,33 @@ export function initUi() {
 export function switchCamera() {
   if (cameraMode === 0) {
     // perspective에서 orthographic으로 전환
+    // 현재 카메라의 위치를 저장
     cameraMode = 1;
-    camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 1000);
+    oldCameraPos = camera.position.clone();
+    const size = 2;
+    const aspect = windowHandler.nukeDisplay.width / windowHandler.nukeDisplay.height;
+    camera = new THREE.OrthographicCamera(-size * aspect, size * aspect, size, -size, 0.1, 1000);
     camera.position.set(0, 9, 0);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    camera.updateProjectionMatrix();
+    // 모든 중성자의 크기를 업데이트
+    neutronMaterial.sizeAttenuation = false;
+    neutronMaterial.size = 3;
   } else {
     // orthographic에서 perspective로 전환
     cameraMode = 0;
     camera = new THREE.PerspectiveCamera();
-    camera.position.set(0, 9, 0); // 초기 위치 설정
+    camera.position.set(oldCameraPos.x, oldCameraPos.y, oldCameraPos.z);
     // camera.lookAt(new THREE.Vector3(0, 0, 0));  // 여기 말고 OrbitControls에서 설정해야 함
     controls.settingOrbitControls(renderer);
+    windowHandler.onResize();
+    // 모든 중성자의 크기를 업데이트
+    neutronMaterial.sizeAttenuation = true;
+    neutronMaterial.size = 0.025;
   }
+
+  neutronMaterial.needsUpdate = true;
+
   camera.updateProjectionMatrix();
   scene.add(camera);
 }

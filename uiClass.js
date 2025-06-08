@@ -60,6 +60,8 @@ export function createButton(
     map: tex0,
     transparent: true,
     side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: false,
   });
 
   const mesh = new THREE.Mesh(geometry, material);
