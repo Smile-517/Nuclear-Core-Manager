@@ -1,26 +1,39 @@
-import { Window } from "./window.js";
-import { CityScene } from "./cityScene.js";
-import { NukeScene } from "./nukeScene.js";
-import { RoomScene } from "./roomScene.js";
-import { Renderer } from "./renderer.js";
-import { Controls } from "./controls.js";
-import { States } from "./states.js";
-import { MouseMove } from "./mouseMove.js";
+import * as gameDisplay from "./gameDisplay.js";
+import * as windowHandler from "./windowHandler.js";
+import * as cityScene from "./cityScene.js";
+import * as nukeScene from "./nukeScene.js";
+import * as roomScene from "./roomScene.js";
+import * as renderClass from "./renderClass.js";
+import * as controls from "./controls.js";
+import * as states from "./states.js";
+import * as mouseMove from "./mouseMove.js";
+import * as uiClass from "./uiClass.js";
 
-const cityScene = new CityScene();
-const nukeScene = new NukeScene();
-const roomScene = new RoomScene();
-const rendererClass = new Renderer();
-const renderer = rendererClass.getRenderer(); // 렌더러는 유일하므로 클래스에서 빼낸다.
-const windowClass = new Window(renderer, cityScene, nukeScene);
-const controls = new Controls(nukeScene.camera, renderer, windowClass);
-const states = new States();
-const mouseMove = new MouseMove(renderer, controls);
+import { TICKS_PER_SECOND } from "./params.js";
+
+renderClass.init();
+gameDisplay.init();
+uiClass.init();
+cityScene.init();
+nukeScene.init();
+roomScene.init();
+const renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
+windowHandler.init();
+controls.init();
+states.init();
+mouseMove.init();
+
+nukeScene.initUi();
+
+const intervalId = setInterval(() => {
+  nukeScene.tick();
+  states.update();
+}, 1000 / TICKS_PER_SECOND);
 
 function animate() {
   controls.update();
-  states.update();
-  cityScene.update(states);
+  cityScene.update();
+  uiClass.updateTempBars();
 
   // 1. 전체 캔버스를 '레터박스 색'으로 지운다
   // viewport/scissor를 캔버스 전체로 설정
@@ -31,30 +44,36 @@ function animate() {
   renderer.clear();
 
   // 2. 16:9 비율의 영역을 게임 영역으로 설정
-  let rect = windowClass.gameDisplay;
+  let rect = gameDisplay.rect;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
-  // 게임 영역 색으로 지정하고 clear()
+  // clearColor를 게임 영역 색으로 지정하고 clear()
   renderer.setClearColor(0xe0f0d0);
   renderer.clear();
 
   // 3. 도시 씬을 렌더링
-  rect = windowClass.cityDisplay;
+  rect = windowHandler.cityDisplay;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
   renderer.render(cityScene.scene, cityScene.camera);
 
   // 4. 핵 코어 씬을 렌더링
-  rect = windowClass.nukeDisplay;
+  rect = windowHandler.nukeDisplay;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
   renderer.render(nukeScene.scene, nukeScene.camera);
 
   // 5. 방 씬을 렌더링
-  rect = windowClass.roomDisplay;
+  rect = windowHandler.roomDisplay;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
   renderer.render(roomScene.scene, roomScene.camera);
+
+  // 6. UI 렌더링
+  rect = gameDisplay.rect;
+  renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
+  renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
+  renderer.render(uiClass.scene, uiClass.camera);
 
   requestAnimationFrame(animate);
 }
