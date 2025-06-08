@@ -48,9 +48,9 @@ export class Window {
     }
 
     // 여기서 각 창들의 위치와 크기를 변경할 수 있다.
-    this.cityDisplay = this.calcDisplay(0.5125, 0.5, 0.4625, 0.45);
-    this.nukeDisplay = this.calcDisplay(0.59, 0.05, 0.385, 0.425);
-    this.roomDisplay = this.calcDisplay(0.075, 0.15, 0.4125, 0.8);
+    this.cityDisplay = this.calcDisplay(985, 565, 1870, 1030);
+    this.nukeDisplay = this.calcDisplay(1185, 50, 1870, 515);
+    this.roomDisplay = this.calcDisplay(100, 200, 935, 1030);
     if (LOG_DEBUG >= 4) {
       console.log("City display:", this.cityDisplay);
       console.log("Nuke display:", this.nukeDisplay);
@@ -70,17 +70,18 @@ export class Window {
     }
   }
 
-  // botLeftXRatio: 왼쪽 아래 x 좌표 대 전체 화면 x 좌표 비율
-  // botLeftYRatio: 왼쪽 아래 y 좌표 대 전체 화면 y 좌표 비율
-  // widthRatio: 전체 화면 너비 대 창 너비 비율
-  // heightRatio: 전체 화면 높이 대 창 높이 비율
-  calcDisplay(botLeftXRatio, botLeftYRatio, widthRatio, heightRatio) {
+  // 1920x1080 기준으로 픽셀 좌표를 계산하는 함수
+  // botLeftX: 1920x1080 기준 왼쪽 아래 x 좌표
+  // botLeftY: 1920x1080 기준 왼쪽 아래 y 좌표
+  // topRightX: 1920x1080 기준 오른쪽 위 x 좌표
+  // topRightY: 1920x1080 기준 오른쪽 위 y 좌표
+  calcDisplay(botLeftX, botLeftY, topRightX, topRightY) {
     const rect = this.gameDisplay;
     return {
-      x: rect.x + rect.width * botLeftXRatio,
-      y: rect.y + rect.height * botLeftYRatio,
-      width: rect.width * widthRatio,
-      height: rect.height * heightRatio,
+      x: botLeftX * (rect.width / 1920) + rect.x,
+      y: botLeftY * (rect.height / 1080) + rect.y,
+      width: (topRightX - botLeftX) * (rect.width / 1920),
+      height: (topRightY - botLeftY) * (rect.height / 1080),
     };
   }
 }
