@@ -70,7 +70,6 @@ export async function init() {
     loadedFont = await fontLoader.loadAsync(
       "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
     );
-    console.log("Font loaded:", loadedFont);
   } catch (err) {
     console.error("Font load error:", err);
   }
@@ -553,15 +552,6 @@ export function resetClickedUi() {
 
 // 게임 오버 애니메이션이 모두 끝난 후 한 번 호출되는 함수
 export function gameOver() {
-  // Game Over! 라는 텍스트를 씬에 추가
-  const textGeometry = new TextGeometry("Game Over!", {
-    font: loadedFont,
-    size: 100,
-    height: 1,
-    curveSegments: 12,
-  });
-  textGeometry.center();
-
   const textMaterial = new THREE.MeshBasicMaterial({
     color: 0xff0000,
     transparent: true,
@@ -570,7 +560,31 @@ export function gameOver() {
     depthTest: false,
   });
 
+  // Game Over! 라는 텍스트를 씬에 추가
+  const textGeometry = new TextGeometry("Game Over!", {
+    font: loadedFont,
+    size: 100,
+    height: 1,
+    curveSegments: 12,
+  });
+  textGeometry.center();
   const textMesh = new THREE.Mesh(textGeometry, textMaterial);
   textMesh.position.set(960, 840, 10); // 화면 중앙에 위치
+
+  // Score: 점수라는 텍스트를 씬에 추가
+  // 이때 점수는 states.js의 elapsedTime를 이용하여 계산
+  const score = states.elapsedTime;
+  const viewedScore = score.toFixed(2);
+  const scoreTextGeometry = new TextGeometry(`Score: ${viewedScore} seconds`, {
+    font: loadedFont,
+    size: 50,
+    height: 1,
+    curveSegments: 12,
+  });
+  scoreTextGeometry.center();
+  const scoreTextMesh = new THREE.Mesh(scoreTextGeometry, textMaterial);
+  scoreTextMesh.position.set(960, 720, 10); // 화면 중앙 위에 위치
+
   scene.add(textMesh);
+  scene.add(scoreTextMesh);
 }

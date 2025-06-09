@@ -344,7 +344,7 @@ function _setupHelpers() {
 export function tick() {
   if (states.isNukeExploded) return; // 핵폭발에 의한 게임 오버 상태일 때는 계산하지 않음
   // 원자로가 시동 중이면 중성자를 방출
-  if (isStartingUp) {
+  if (!states.isGameStarted && isStartingUp) { // 게임이 시작되면 시동을 걸 수 없음
     // coreRadius, 2, 0 위치에서 중심 방향으로 1초에 10개의 중성자를 확률적으로 방출
     if (Math.random() < 10 / TICKS_PER_SECOND) {
       _startupNeutrons();
@@ -475,7 +475,7 @@ function _removeNeutron(i) {
 
 function _startupNeutrons() {
   _makeNeutron(
-    coreRadius,
+    coreRadius - 0.001,
     2,
     0,
     -1,

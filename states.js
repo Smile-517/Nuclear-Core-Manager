@@ -26,6 +26,9 @@ import {
 
 // 객체 내부 변수들
 let clock;
+let gameStartTime;
+let gameEndTime;
+export let elapsedTime;
 const MID_DEMAND = (MAX_DEMAND + MIN_DEMAND) / 2; // 요구 열의 중간값
 export let dayTime;
 export let coreTemp;
@@ -108,10 +111,7 @@ export function tick() {
 
   // 온도가 STARTING_HEAT 이상이 되면 게임 시작
   if (!isGameStarted && coreTemp >= STARTING_HEAT) {
-    isGameStarted = true;
-    console.log(
-      "Game started! Core temperature: " + coreTemp.toFixed(2) + "°C"
-    );
+    _gameStart();
   }
 
   // 온도가 25도 이상일 때 서서히 감소
@@ -196,6 +196,13 @@ function _initUi() {
   );
 }
 
+function _gameStart() {
+  if (isGameStarted) return; // 이미 게임이 시작되었으면 무시
+  isGameStarted = true;
+  gameStartTime = clock.getElapsedTime(); // 게임 시작 시간 기록
+  console.log("Game started! Core temperature: " + coreTemp.toFixed(2) + "°C");
+}
+
 // 일정 온도를 넘어 핵이 폭발하는 조건이 만족될 때 호출되는 함수
 function _explodeNuke() {
   if (isNukeExploded) return;
@@ -229,6 +236,8 @@ function _powerOutage() {
 function _gameOver() {
   if (isGameOver) return; // 이미 게임 오버 상태라면 무시
   isGameOver = true;
-
+  gameEndTime = clock.getElapsedTime(); // 게임 종료 시간 기록
+  elapsedTime = gameEndTime - gameStartTime; // 게임이 시작된 후 경과 시간 계산
+  console.log("Game Over! Elapsed time: " + elapsedTime.toFixed(2) + " seconds");
   uiClass.gameOver();
 }
