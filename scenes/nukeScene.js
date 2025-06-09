@@ -1,14 +1,14 @@
 import * as THREE from "three";
 
-import * as gameDisplay from "./gameDisplay.js";
-import * as windowHandler from "./windowHandler.js";
+import * as gameDisplay from "../gameDisplay.js";
+import * as windowHandler from "../windowHandler.js";
 import * as cityScene from "./cityScene.js";
 import * as roomScene from "./roomScene.js";
-import * as renderClass from "./renderClass.js";
-import * as controls from "./controls.js";
-import * as states from "./states.js";
-import * as mouseMove from "./mouseMove.js";
-import * as uiClass from "./uiClass.js";
+import * as renderClass from "../renderClass.js";
+import * as controls from "../controls.js";
+import * as states from "../states.js";
+import * as mouseMove from "../mouseMove.js";
+import * as uiClass from "../uiClass.js";
 
 import {
   RENDER_DEBUG,
@@ -19,7 +19,7 @@ import {
   CONTROL_ROD_SPEED,
   FUEL_ROD_HEAT,
   CONTROL_ROD_HEAT,
-} from "./params.js";
+} from "../params.js";
 
 let renderer;
 
@@ -28,7 +28,7 @@ export let scene;
 export let camera;
 let cameraMode; // 카메라 모드: 0: perspective, 1: orthographic
 let oldCameraPos;
-let spotLight;
+export let spotLight;
 let reactor;
 let axesHelper;
 let spotLightHelper;
@@ -47,6 +47,18 @@ let rodRadius; // 연료봉, 제어봉의 반지름
 let rodOffset; // 봉의 위치 오프셋 (원자로 표면 위에 위치하도록), z-fighting 회피.
 let controlRodOperation; // 제어봉에게 내리는 명령의 상태: -1: 내리기, 0: 유지, 1: 올리기
 export let controlRodPosY;
+
+// 연료봉, 제어봉 그래픽 관련 변수들
+export let fuelRodMaterial;
+let fuelRodSphereGeometry;
+let fuelRodGeometry;
+export let fuelRodBasicSphereMaterial;
+export let fuelRodBasicSphereDefaultColor;
+export let fuelRodBasicSphereHeatedColor;
+let controlRodMaterial;
+let controlRodSphereGeometry;
+let controlRodGeometry;
+let controlRodBasicSphereMaterial;
 
 // 중성자 관련 변수들
 let maxNeutrons;
@@ -85,7 +97,6 @@ export function init() {
 
   // neutron material
   neutronMaterial = new THREE.PointsMaterial({
-    size: 0.025,
     map: _createCircleTexture(),
     transparent: false,
     alphaTest: 0.5,
@@ -130,6 +141,8 @@ export function init() {
     4,
     "up"
   );
+
+  updateNeutronSize(); // 초기 중성자 크기 설정
 }
 
 // 원형 스프라이트 캔버스 생성
@@ -147,7 +160,7 @@ function _createCircleTexture() {
 
 function _setupCamera() {
   camera = new THREE.PerspectiveCamera();
-  camera.position.set(0, 9, 0); // 초기 위치 설정
+  camera.position.set(1.5, 8, 3.5); // 초기 위치 설정
   // camera.lookAt(new THREE.Vector3(0, 0, 0));  // 여기 말고 OrbitControls에서 설정해야 함
   camera.updateProjectionMatrix();
   scene.add(camera);
@@ -212,7 +225,6 @@ function _setupRods() {
       rodPositions.push([x, z]);
     }
   }
-  if (LOG_DEBUG >= 3) console.log("Rod positions:", rodPositions);
 
   // 어떤 봉이 연료봉인지 제어봉인지 설정
   // 0: 사용 안 함, 1: 연료봉, 2: 제어봉
@@ -238,19 +250,26 @@ function _setupRods() {
       }
     }
   }
-  if (LOG_DEBUG >= 3) console.log("Which rods:", whichRods);
 
   // 행렬을 이용해 연료봉 생성
   rodRadius = 0.1; // 연료봉, 제어봉의 반지름 설정
   const r = rodRadius;
   const h = coreHeight - 0.01;
-  const fuelRodGeometry = new THREE.CylinderGeometry(r, r, h, 32);
-  const fuelRodSphereGeometry = new THREE.SphereGeometry(r, 32, 32);
-  const fuelRodMaterial = new THREE.MeshStandardMaterial({
+  fuelRodGeometry = new THREE.CylinderGeometry(r, r, h, 32);
+  fuelRodSphereGeometry = new THREE.SphereGeometry(r, 32, 32);
+  fuelRodMaterial = new THREE.MeshStandardMaterial({
     color: 0x7f7f7f,
     metalness: 0.8,
     roughness: 0.4,
+    emissive: 0xff0000,
+    emissiveIntensity: 0.0, // 초기에는 발광하지 않음
   });
+  fuelRodBasicSphereMaterial = new THREE.MeshBasicMaterial({
+    color: 0x7f7f7f,
+    visible: false,
+  });
+  fuelRodBasicSphereDefaultColor = fuelRodBasicSphereMaterial.color.clone();
+  fuelRodBasicSphereHeatedColor = new THREE.Color(0xff7f7f); // 연료봉이 가열되면 이 색으로 변경
   for (let i = 0; i < rodPositions.length; i++) {
     if (whichRods[i] != 1) continue;
     const [x, z] = rodPositions[i];
@@ -259,20 +278,30 @@ function _setupRods() {
       fuelRodSphereGeometry,
       fuelRodMaterial
     );
+    const fuelRodSphereBasic = new THREE.Mesh(
+      fuelRodSphereGeometry,
+      fuelRodBasicSphereMaterial
+    );
     fuelRod.add(fuelRodSphere); // 연료봉의 상단에 구체를 추가하여 시각적으로 강조
+    fuelRod.add(fuelRodSphereBasic);
     fuelRodSphere.position.set(0, h / 2, 0); // 구체를 봉의 상단에 위치시킴
+    fuelRodSphereBasic.position.set(0, h / 2 + 1, 0);
     fuelRod.position.set(x, coreHeight / 2 + rodOffset, z); // X, Z축으로 간격을 두고 배치
     fuelRod.castShadow = false;
     scene.add(fuelRod);
   }
 
   // 행렬을 이용해 제어봉 생성
-  const controlRodGeometry = new THREE.CylinderGeometry(r, r, h, 32);
-  const controlRodSphereGeometry = new THREE.SphereGeometry(r, 32, 32);
-  const controlRodMaterial = new THREE.MeshStandardMaterial({
+  controlRodGeometry = new THREE.CylinderGeometry(r, r, h, 32);
+  controlRodSphereGeometry = new THREE.SphereGeometry(r, 32, 32);
+  controlRodMaterial = new THREE.MeshStandardMaterial({
     color: 0x9fdf7f,
     metalness: 0.8,
     roughness: 0.4,
+  });
+  controlRodBasicSphereMaterial = new THREE.MeshBasicMaterial({
+    color: 0x9fdf7f,
+    visible: false,
   });
   for (let i = 0; i < rodPositions.length; i++) {
     if (whichRods[i] != 2) continue;
@@ -282,13 +311,23 @@ function _setupRods() {
       controlRodSphereGeometry,
       controlRodMaterial
     );
+    const controlRodSphereBasic = new THREE.Mesh(
+      controlRodSphereGeometry,
+      controlRodBasicSphereMaterial
+    );
     controlRod.add(controlRodSphere); // 제어봉의 상단에 구체를 추가하여 시각적으로 강조
+    controlRod.add(controlRodSphereBasic);
     controlRodSphere.position.set(0, h / 2, 0); // 구체를 봉의 상단에 위치시킴
+    controlRodSphereBasic.position.set(0, h / 2 + 1, 0);
     controlRod.position.set(x, coreHeight / 2 + rodOffset, z); // X, Z축으로 간격을 두고 배치
     controlRod.castShadow = false;
     controlRods.push(controlRod);
     scene.add(controlRod);
   }
+}
+
+export function setFuelRodBasicSphereColor(color) {
+  fuelRodBasicSphereMaterial.color.set(color);
 }
 
 function _setupHelpers() {
@@ -303,6 +342,7 @@ function _setupHelpers() {
 
 // 1초에 TICKS_PER_SECOND번 호출됨.
 export function tick() {
+  if (states.isNukeExploded) return; // 핵폭발에 의한 게임 오버 상태일 때는 계산하지 않음
   // 원자로가 시동 중이면 중성자를 방출
   if (isStartingUp) {
     // coreRadius, 2, 0 위치에서 중심 방향으로 1초에 10개의 중성자를 확률적으로 방출
@@ -516,12 +556,14 @@ export function switchCamera() {
       0.1,
       1000
     );
-    camera.position.set(0, 9, 0);
+    camera.position.set(0, 100, 0);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     camera.updateProjectionMatrix();
+    // 각 봉의 basic sphere를 보이도록 설정
+    fuelRodBasicSphereMaterial.visible = true;
+    controlRodBasicSphereMaterial.visible = true;
     // 모든 중성자의 크기를 업데이트
-    neutronMaterial.sizeAttenuation = false;
-    neutronMaterial.size = 3;
+    updateNeutronSize();
   } else {
     // orthographic에서 perspective로 전환
     cameraMode = 0;
@@ -530,15 +572,26 @@ export function switchCamera() {
     // camera.lookAt(new THREE.Vector3(0, 0, 0));  // 여기 말고 OrbitControls에서 설정해야 함
     controls.settingOrbitControls(renderer);
     windowHandler.onResize();
+    // 각 봉의 basic sphere를 보이지 않도록 설정
+    fuelRodBasicSphereMaterial.visible = false;
+    controlRodBasicSphereMaterial.visible = false;
     // 모든 중성자의 크기를 업데이트
-    neutronMaterial.sizeAttenuation = true;
-    neutronMaterial.size = 0.025;
+    updateNeutronSize();
   }
-
-  neutronMaterial.needsUpdate = true;
 
   camera.updateProjectionMatrix();
   scene.add(camera);
+}
+
+export function updateNeutronSize() {
+  if (cameraMode === 0) {
+    neutronMaterial.sizeAttenuation = true;
+    neutronMaterial.size = 0.025 * (windowHandler.width / 1920);
+  } else {
+    neutronMaterial.sizeAttenuation = false;
+    neutronMaterial.size = 3 * (windowHandler.width / 1920);
+  }
+  neutronMaterial.needsUpdate = true;
 }
 
 export function setControlRodOperation(operation) {

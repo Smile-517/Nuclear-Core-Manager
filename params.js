@@ -6,6 +6,13 @@ export const LEN_ONE_DAY = 10; // 하루의 길이 (초 단위)
 export const LATITUDE = 38;
 export const TICKS_PER_SECOND = 200;
 
+// 온도 관련
+export const STARTING_HEAT = 1000; // 이 온도 이상이 되면 게임 시작
+export const DEMAND_CHANGE_RATE = 2000; // 요구 전력량 변화율
+export const MAX_DEMAND = 2000; // 요구 열의 최대값
+export const MIN_DEMAND = 200; // 요구 열의 최소값
+export const PANELTY_RATE = 0.1; // 패널티율 (요구 전력량이 최대 또는 최소값에 가까워질 때 요구 전력량이 그 방향으로 덜 가게 하는 비율)
+
 // 코어 관련
 export const CONTROL_ROD_SPEED = 2; // 제어봉 제어 속도
 export const COOLING_RATE = 0.01;

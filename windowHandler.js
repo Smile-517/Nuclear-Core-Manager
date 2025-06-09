@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
 import * as gameDisplay from "./gameDisplay.js";
-import * as cityScene from "./cityScene.js";
-import * as nukeScene from "./nukeScene.js";
-import * as roomScene from "./roomScene.js";
+import * as cityScene from "./scenes/cityScene.js";
+import * as nukeScene from "./scenes/nukeScene.js";
+import * as roomScene from "./scenes/roomScene.js";
 import * as renderClass from "./renderClass.js";
 import * as controls from "./controls.js";
 import * as states from "./states.js";
@@ -19,6 +19,8 @@ export let cityDisplay;
 export let nukeDisplay;
 export let roomDisplay;
 
+export let width;
+
 export function init() {
   renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
 
@@ -28,10 +30,9 @@ export function init() {
 }
 
 export function onResize() {
+  width = window.innerWidth;
+  nukeScene.updateNeutronSize();
   gameDisplay.update();
-  if (LOG_DEBUG >= 4) {
-    console.log("Window resized:", gameDisplay.rect);
-  }
   const w = window.innerWidth;
   const h = window.innerHeight;
   renderer.setSize(w, h);
@@ -40,11 +41,6 @@ export function onResize() {
   cityDisplay = gameDisplay.calcRect(985, 565, 1870, 1030);
   nukeDisplay = gameDisplay.calcRect(1185, 50, 1870, 515);
   roomDisplay = gameDisplay.calcRect(100, 200, 935, 1030);
-  if (LOG_DEBUG >= 4) {
-    console.log("City display:", cityDisplay);
-    console.log("Nuke display:", nukeDisplay);
-    console.log("Room display:", roomDisplay);
-  }
 
   // 카메라들의 비율을 업데이트
   cityScene.camera.aspect = cityDisplay.width / cityDisplay.height;
@@ -53,9 +49,4 @@ export function onResize() {
   cityScene.camera.updateProjectionMatrix();
   nukeScene.camera.updateProjectionMatrix();
   roomScene.camera.updateProjectionMatrix();
-  if (LOG_DEBUG >= 4) {
-    console.log("City camera aspect:", cityScene.camera.aspect);
-    console.log("Nuke camera aspect:", nukeScene.camera.aspect);
-    console.log("Room camera aspect:", roomScene.camera.aspect);
-  }
 }

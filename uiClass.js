@@ -1,10 +1,12 @@
 import * as THREE from "three";
+import { FontLoader } from "three/addons/loaders/FontLoader.js";
+import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
 
 import * as gameDisplay from "./gameDisplay.js";
 import * as windowHandler from "./windowHandler.js";
-import * as cityScene from "./cityScene.js";
-import * as nukeScene from "./nukeScene.js";
-import * as roomScene from "./roomScene.js";
+import * as cityScene from "./scenes/cityScene.js";
+import * as nukeScene from "./scenes/nukeScene.js";
+import * as roomScene from "./scenes/roomScene.js";
 import * as renderClass from "./renderClass.js";
 import * as controls from "./controls.js";
 import * as states from "./states.js";
@@ -13,24 +15,28 @@ import * as mouseMove from "./mouseMove.js";
 let renderer;
 
 let buttons; // UI 중 버튼들을 저장하는 배열
-let tempBars; // UI 중 바들을 저장하는 배열
+let bars; // UI 중 바들을 저장하는 배열
+let barIndicators;
+export let tempBar;
 let throttleBars; // UI 중 스로틀 바들을 저장하는 배열
 let throttleObj; // 스로틀 오브젝트를 저장하는 변수
 let mouseClicked;
 let selectedUi;
-let defaultColor; // 기본 바 색상
-let defaultColorFloat;
-let alertColor; // 경고 바 색상
-let alertColorFloat;
+export let defaultColor; // 기본 바 색상
+export let defaultColorFloat;
+export let alertColor; // 경고 바 색상
+export let alertColorFloat;
+let loadedFont;
 
 // 16:9 게임 영역에 UI를 그리기 위한 씬
 export let scene;
 export let camera;
 
-export function init() {
+export async function init() {
   renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
   buttons = [];
-  tempBars = [];
+  bars = [];
+  barIndicators = [];
   throttleBars = [];
   mouseClicked = false;
   defaultColor = 0x4caf50;
@@ -57,6 +63,17 @@ export function init() {
   const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
   directionalLight.position.set(0, 0, 100).normalize();
   scene.add(directionalLight);
+
+  // 폰트 로딩
+  const fontLoader = new FontLoader();
+  try {
+    loadedFont = await fontLoader.loadAsync(
+      "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
+    );
+    console.log("Font loaded:", loadedFont);
+  } catch (err) {
+    console.error("Font load error:", err);
+  }
 
   renderer.domElement.addEventListener("pointerdown", (event) => {
     mouseClicked = true;
@@ -216,7 +233,7 @@ export function updateThrottleBars() {
   }
 }
 
-export function createTempBar(
+export function createBar(
   botLeftX,
   botLeftY,
   topRightX,
@@ -225,7 +242,8 @@ export function createTempBar(
   min,
   max,
   direction,
-  offset // 안쪽 바와 바깥쪽 바의 크기 차이
+  offset, // 안쪽 바와 바깥쪽 바의 크기 차이
+  specialBarName = null // 특별한 바 이름이 있는 경우
 ) {
   // 바깥쪽
   const width = topRightX - botLeftX;
@@ -277,13 +295,16 @@ export function createTempBar(
     offset: offset,
   };
 
-  tempBars.push(bar);
+  bars.push(bar);
+  if (specialBarName === "tempBar") {
+    tempBar = bar; // 특별한 바 이름이 있는 경우 tempBar로 저장
+  }
   scene.add(outerMesh);
   scene.add(innerMesh);
 }
 
-export function updateTempBars() {
-  for (const bar of tempBars) {
+export function updateBars() {
+  for (const bar of bars) {
     let value = eval(bar.value);
     // 바의 현재 값이 최소값과 최대값 사이에 있는지 확인
     if (value < bar.min) {
@@ -293,20 +314,7 @@ export function updateTempBars() {
     }
     const ratio = (value - bar.min) / (bar.max - bar.min);
 
-    // 컬러 보간
-    if (ratio <= 0.75) {
-      bar.innerMesh.material.color.setRGB(
-        defaultColorFloat.r,
-        defaultColorFloat.g,
-        defaultColorFloat.b
-      );
-    } else {
-      const t = (ratio - 0.75) / 0.25;
-      const r = defaultColorFloat.r * (1 - t) + alertColorFloat.r * t;
-      const g = defaultColorFloat.g * (1 - t) + alertColorFloat.g * t;
-      const b = defaultColorFloat.b * (1 - t) + alertColorFloat.b * t;
-      bar.innerMesh.material.color.setRGB(r, g, b);
-    }
+    // tempBar의 컬러 보간은 states.js에서 처리
 
     // 안쪽 바의 크기를 현재 값에 맞게 조정
     switch (bar.direction) {
@@ -336,7 +344,98 @@ export function updateTempBars() {
   }
 }
 
-// botLeftX, botLeftY, topRightX, topRightY, texture가 인수로 들어오면 그에 맞는 UI를 생성하는 함수
+export function createBarIndicator(
+  botLeftX,
+  botLeftY,
+  topRightX,
+  topRightY,
+  value,
+  min,
+  max,
+  direction,
+  offset
+) {
+  const width = topRightX - botLeftX;
+
+  const indicarotPosition = new THREE.Mesh(); // 빈 메쉬 생성
+  indicarotPosition.position.set(
+    botLeftX + (topRightX - botLeftX) / 2,
+    botLeftY + (topRightY - botLeftY) / 2,
+    0
+  );
+
+  const geometry = new THREE.BufferGeometry();
+  const a = 25; // 삼각형의 한 변의 길이
+  const vertices = new Float32Array([
+    0,
+    (Math.sqrt(3) / 3) * a,
+    0, // A
+    -a / 2,
+    (-Math.sqrt(3) / 6) * a,
+    0, // B
+    a / 2,
+    (-Math.sqrt(3) / 6) * a,
+    0, // C
+  ]);
+  geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+  geometry.computeVertexNormals();
+  const material = new THREE.MeshBasicMaterial({
+    color: 0xff8c00,
+    side: THREE.DoubleSide,
+  });
+  const lTriangleMesh = new THREE.Mesh(geometry, material);
+  lTriangleMesh.rotation.z = -Math.PI / 2;
+  lTriangleMesh.position.set(-width / 2 - a / Math.sqrt(3), 0, 0.1);
+  indicarotPosition.add(lTriangleMesh);
+  const rTriangleMesh = new THREE.Mesh(geometry, material);
+  rTriangleMesh.rotation.z = Math.PI / 2;
+  rTriangleMesh.position.set(width / 2 + a / Math.sqrt(3), 0, 0.1);
+  indicarotPosition.add(rTriangleMesh);
+
+  scene.add(indicarotPosition);
+  barIndicators.push({
+    position: indicarotPosition,
+    value: value, // 이 인디케이터가 나타내는 값 (alias)
+    min: min,
+    max: max,
+    botLeftY: botLeftY, // 인디케이터의 위치를 계산하는 데 사용되는 바닥 왼쪽 Y 좌표
+    topRightY: topRightY,
+    direction: direction, // "up", "down", "left", "right"
+    offset: offset, // 인디케이터의 위치 조정에 사용되는 오프셋
+  });
+}
+
+export function updateBarIndicator() {
+  for (const indicator of barIndicators) {
+    let currentValue = eval(indicator.value);
+    // 인디케이터의 현재 값이 최소값과 최대값 사이에 있는지 확인
+    if (currentValue < indicator.min) {
+      currentValue = indicator.min;
+    } else if (currentValue > indicator.max) {
+      currentValue = indicator.max;
+    }
+    const ratio =
+      (currentValue - indicator.min) / (indicator.max - indicator.min);
+
+    // 인디케이터의 위치를 현재 값에 맞게 조정
+    switch (indicator.direction) {
+      case "up":
+        indicator.position.position.y =
+          indicator.botLeftY +
+          indicator.offset / 2 +
+          (indicator.topRightY - indicator.botLeftY - indicator.offset) * ratio;
+        break;
+      case "down":
+        break;
+      case "left":
+        break;
+      case "right":
+        break;
+    }
+  }
+}
+
+// botLeftX, botLeftY, topRightX, topRightY, texture가 인수로 들어오면 그에 맞는 버튼을 생성하는 함수
 export function createButton(
   botLeftX,
   botLeftY,
@@ -450,4 +549,28 @@ export function resetClickedUi() {
     }
   }
   selectedUi = null; // 클릭된 UI를 초기화
+}
+
+// 게임 오버 애니메이션이 모두 끝난 후 한 번 호출되는 함수
+export function gameOver() {
+  // Game Over! 라는 텍스트를 씬에 추가
+  const textGeometry = new TextGeometry("Game Over!", {
+    font: loadedFont,
+    size: 100,
+    height: 1,
+    curveSegments: 12,
+  });
+  textGeometry.center();
+
+  const textMaterial = new THREE.MeshBasicMaterial({
+    color: 0xff0000,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    depthTest: false,
+  });
+
+  const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+  textMesh.position.set(960, 840, 10); // 화면 중앙에 위치
+  scene.add(textMesh);
 }

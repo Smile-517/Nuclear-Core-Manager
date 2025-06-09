@@ -1,8 +1,8 @@
 import * as THREE from "three";
 
-import * as states from "./states.js";
+import * as states from "../states.js";
 
-import { RENDER_DEBUG, LATITUDE } from "./params.js";
+import { RENDER_DEBUG, LATITUDE } from "../params.js";
 
 // 객체 내부 변수들
 export let scene;
