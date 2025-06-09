@@ -2,9 +2,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 import * as gameDisplay from "./gameDisplay.js";
 import * as windowHandler from "./windowHandler.js";
-import * as cityScene from "./cityScene.js";
-import * as nukeScene from "./nukeScene.js";
-import * as roomScene from "./roomScene.js";
+import * as cityScene from "./scenes/cityScene.js";
+import * as nukeScene from "./scenes/nukeScene.js";
+import * as roomScene from "./scenes/roomScene.js";
 import * as renderClass from "./renderClass.js";
 import * as states from "./states.js";
 import * as mouseMove from "./mouseMove.js";
@@ -41,14 +41,14 @@ export function settingOrbitControls(renderer) {
 }
 
 function _addStartupListener() {
-  // i키를 누르고 있을 때 isStartingUp이 true을 유지하며, i키를 떼면 false로 설정
+  // space키를 누르고 있을 때 isStartingUp이 true을 유지하며, space키를 떼면 false로 설정
   window.addEventListener("keydown", (event) => {
-    if (event.key.toLowerCase() === "i") {
+    if (event.key.toLowerCase() === " ") { // " "가 space를 의미
       nukeScene.setIsStartingUp(true);
     }
   });
   window.addEventListener("keyup", (event) => {
-    if (event.key.toLowerCase() === "i") {
+    if (event.key.toLowerCase() === " ") {
       nukeScene.setIsStartingUp(false);
     }
   });

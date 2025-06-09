@@ -1,7 +1,7 @@
 import * as windowHandler from "./windowHandler.js";
-import * as cityScene from "./cityScene.js";
-import * as nukeScene from "./nukeScene.js";
-import * as roomScene from "./roomScene.js";
+import * as cityScene from "./scenes/cityScene.js";
+import * as nukeScene from "./scenes/nukeScene.js";
+import * as roomScene from "./scenes/roomScene.js";
 import * as renderClass from "./renderClass.js";
 import * as controls from "./controls.js";
 import * as states from "./states.js";

@@ -1,11 +1,11 @@
 import * as THREE from "three";
 
-import { RENDER_DEBUG } from "./params.js";
+import { RENDER_DEBUG } from "../params.js";
 
 // 객체 내부 변수들
 export let scene;
 export let camera;
-let pointLight;
+export let pointLight;
 let floor;
 let axesHelper;
 let pointLightHelper;
@@ -21,6 +21,10 @@ export function init() {
   camera.lookAt(new THREE.Vector3(0, 0, 0));
   camera.updateProjectionMatrix();
   scene.add(camera);
+
+  // ambient light (기본 조명)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.25); // 약한 기본 조명
+  scene.add(ambientLight);
 
   // point light (방 안의 조명)
   pointLight = new THREE.PointLight(0xffffff, 100.0);

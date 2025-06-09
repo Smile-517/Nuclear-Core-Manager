@@ -1,21 +1,23 @@
 import * as gameDisplay from "./gameDisplay.js";
 import * as windowHandler from "./windowHandler.js";
-import * as cityScene from "./cityScene.js";
-import * as nukeScene from "./nukeScene.js";
-import * as roomScene from "./roomScene.js";
+import * as cityScene from "./scenes/cityScene.js";
+import * as nukeScene from "./scenes/nukeScene.js";
+import * as roomScene from "./scenes/roomScene.js";
+import * as nukeEndScene from "./scenes/nukeEndScene.js";
 import * as renderClass from "./renderClass.js";
 import * as controls from "./controls.js";
 import * as states from "./states.js";
 import * as mouseMove from "./mouseMove.js";
 import * as uiClass from "./uiClass.js";
 
-import { TICKS_PER_SECOND } from "./params.js";
+import { TICKS_PER_SECOND, RENDER_DEBUG } from "./params.js";
 
 renderClass.init();
 gameDisplay.init();
-uiClass.init();
+await uiClass.init();
 cityScene.init();
 nukeScene.init();
+nukeEndScene.init();
 roomScene.init();
 const renderer = renderClass.renderer; // 렌더러는 유일하므로 클래스에서 빼낸다.
 windowHandler.init();
@@ -27,13 +29,13 @@ nukeScene.initUi();
 
 const intervalId = setInterval(() => {
   nukeScene.tick();
-  states.update();
+  states.tick();
 }, 1000 / TICKS_PER_SECOND);
 
 function animate() {
   controls.update();
   cityScene.update();
-  uiClass.updateTempBars();
+  uiClass.updateBars();
 
   // 1. 전체 캔버스를 '레터박스 색'으로 지운다
   // viewport/scissor를 캔버스 전체로 설정
@@ -61,7 +63,11 @@ function animate() {
   rect = windowHandler.nukeDisplay;
   renderer.setViewport(rect.x, rect.y, rect.width, rect.height);
   renderer.setScissor(rect.x, rect.y, rect.width, rect.height);
-  renderer.render(nukeScene.scene, nukeScene.camera);
+  if (!states.isNukeExploded) {
+    renderer.render(nukeScene.scene, nukeScene.camera);
+  } else {
+    renderer.render(nukeEndScene.scene, nukeEndScene.camera);
+  }
 
   // 5. 방 씬을 렌더링
   rect = windowHandler.roomDisplay;
