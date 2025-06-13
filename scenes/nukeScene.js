@@ -26,6 +26,8 @@ let renderer;
 // 객체 내부 변수들
 export let scene;
 export let camera;
+let cameraNear;
+let cameraFar;
 let cameraMode; // 카메라 모드: 0: perspective, 1: orthographic
 let oldCameraPos;
 export let spotLight;
@@ -76,6 +78,8 @@ export function init() {
 
   // 변수 초기화
   cameraMode = 0; // perspective
+  cameraNear = 0.015625;
+  cameraFar = 512;
   coreRadius = 2;
   coreHeight = 4;
   rodPositions = [];
@@ -160,6 +164,8 @@ function _createCircleTexture() {
 
 function _setupCamera() {
   camera = new THREE.PerspectiveCamera();
+  camera.near = cameraNear;
+  camera.far = cameraFar;
   camera.position.set(1.5, 8, 3.5); // 초기 위치 설정
   // camera.lookAt(new THREE.Vector3(0, 0, 0));  // 여기 말고 OrbitControls에서 설정해야 함
   camera.updateProjectionMatrix();
@@ -185,11 +191,12 @@ function _setupLights() {
 
 function _setupReactor() {
   // 바닥
-  const floorGeometry = new THREE.PlaneGeometry(128, 128);
+  const floorGeometry = new THREE.CircleGeometry(32768);
   const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.rotation.x = -Math.PI / 2; // 바닥을 수평으로 회전
   floor.receiveShadow = true; // 그림자 받기
+  floor.position.set(0, -0.01, 0); // 바닥 위치 조정
   scene.add(floor);
 
   // 원자로 껍데기 (샘플로 간단한 실린더 사용)
@@ -455,9 +462,10 @@ export function tick() {
 }
 
 function _removeNeutron(i) {
+  // 마치 heap에서 entry를 제거하는 것처럼 동작
   const last = activeCount - 1;
   if (i !== last) {
-    // 1) 끝(last) 슬롯 데이터를 i 슬롯으로 복사
+    // 끝쪽 슬롯 데이터를 i 슬롯으로 복사
     const baseI = i * 3;
     const baseLast = last * 3;
     for (let k = 0; k < 3; k++) {
@@ -466,10 +474,10 @@ function _removeNeutron(i) {
     }
     inUse[i] = inUse[last];
   }
-  // 2) 마지막 슬롯은 해제 → 재사용 스택으로
+  // 마지막 슬롯은 해제 -> 재사용 스택으로
   inUse[last] = false;
   available.push(last);
-  // 3) 활성 개수 한 칸 줄이기
+  // 활성 개수 한 칸 줄이기
   activeCount--;
 }
 
@@ -491,7 +499,7 @@ function _makeNeutron(posX, posY, posZ, vX, vY, vZ) {
   }
   const freeIdx = available.pop();
   const baseFree = freeIdx * 3;
-  // 1) 여유 슬롯에 데이터 기록
+  // 여유 슬롯에 데이터 기록
   positions[baseFree] = posX;
   positions[baseFree + 1] = posY;
   positions[baseFree + 2] = posZ;
@@ -501,7 +509,7 @@ function _makeNeutron(posX, posY, posZ, vX, vY, vZ) {
   velocities[baseFree] = v.x;
   velocities[baseFree + 1] = v.y;
   velocities[baseFree + 2] = v.z;
-  // 2) 활성 영역 끝(activeCount)으로 swap
+  // 활성 영역 끝(activeCount)으로 swap
   const dstIdx = activeCount;
   if (freeIdx !== dstIdx) {
     const baseDst = dstIdx * 3;
@@ -521,7 +529,7 @@ function _makeNeutron(posX, posY, posZ, vX, vY, vZ) {
     available.push(freeIdx);
   }
 
-  // 3) activeCount 증가
+  // activeCount 증가
   activeCount++;
   inUse[dstIdx] = true;
 }
@@ -568,6 +576,8 @@ export function switchCamera() {
     // orthographic에서 perspective로 전환
     cameraMode = 0;
     camera = new THREE.PerspectiveCamera();
+    camera.near = cameraNear;
+    camera.far = cameraFar;
     camera.position.set(oldCameraPos.x, oldCameraPos.y, oldCameraPos.z);
     // camera.lookAt(new THREE.Vector3(0, 0, 0));  // 여기 말고 OrbitControls에서 설정해야 함
     controls.settingOrbitControls(renderer);
