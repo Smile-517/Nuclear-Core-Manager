@@ -38,6 +38,8 @@ export function settingOrbitControls(renderer) {
   orbitControls.dampingFactor = 0.05; // 감속 정도, 크면 더 빨리 감속, default = 0.05
   orbitControls.enablePan = false; // 팬 기능 비활성화
   orbitControls.target.set(0, 2, 0); // 초기 위치 설정
+  orbitControls.minDistance = 1;
+  orbitControls.maxDistance = 32;
 }
 
 function _addStartupListener() {
