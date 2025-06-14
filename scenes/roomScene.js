@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RENDER_DEBUG } from "../params.js";
 import * as controls from "../controls.js";
 import * as renderClass from "../renderClass.js";
+import { showLoading, hideLoading } from '../main.js';
 
 // 객체 내부 변수들
 export let scene;
@@ -117,8 +118,12 @@ export function init() {
         }
       }
     }
+    // 로딩 완료
+    hideLoading();
   }).catch(error => {
     console.error('Error loading models:', error);
+    // 에러 발생 시에도 로딩 화면 숨기기
+    hideLoading();
   });
 
   // 디버그 모드일 때만 헬퍼 추가
