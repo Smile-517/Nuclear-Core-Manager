@@ -36,6 +36,7 @@ function animate() {
   controls.update();
   cityScene.update();
   uiClass.updateBars();
+  roomScene.update();
 
   // 1. 전체 캔버스를 '레터박스 색'으로 지운다
   // viewport/scissor를 캔버스 전체로 설정
