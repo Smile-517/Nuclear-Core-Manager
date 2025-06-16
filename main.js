@@ -32,10 +32,33 @@ const intervalId = setInterval(() => {
   states.tick();
 }, 1000 / TICKS_PER_SECOND);
 
+// 로딩 화면 관리
+const loadingScreen = document.getElementById('loading-screen');
+let loadingCount = 0;
+
+export const showLoading = () => {
+  loadingCount++;
+  if (loadingScreen) {
+    loadingScreen.style.display = 'flex';
+  }
+};
+
+export const hideLoading = () => {
+  loadingCount--;
+  if (loadingCount <= 0 && loadingScreen) {
+    loadingCount = 0;
+    loadingScreen.style.display = 'none';
+  }
+};
+
+// 초기 로딩 화면 표시
+showLoading();
+
 function animate() {
   controls.update();
   cityScene.update();
   uiClass.updateBars();
+  roomScene.update();
 
   // 1. 전체 캔버스를 '레터박스 색'으로 지운다
   // viewport/scissor를 캔버스 전체로 설정

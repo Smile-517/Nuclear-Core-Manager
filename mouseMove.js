@@ -33,10 +33,8 @@ export function init() {
     const canvasHeight = canvasRect.height;
     mouseY = canvasHeight - mouseY0;
 
-    // orbitControls를 이용하고 있다가 Nuke창을 벗어났을 때에도 orbitControls가 끊기지 않도록
-    if (!mouseClicked) {
-      controls.setOrbicControls(mouseX, mouseY);
-    }
+    // nuke 뷰포트 영역 체크 및 OrbitControls 활성화
+    controls.setOrbicControls(mouseX, mouseY);
 
     uiClass.isMouseOver();
   });

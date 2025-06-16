@@ -375,6 +375,8 @@ export function tick() {
       const controlRod = controlRods[i];
       controlRod.position.y = controlRodPosY + coreHeight / 2 + rodOffset;
     }
+    
+    // UI 업데이트
     uiClass.updateThrottleBars();
   }
 
