@@ -552,39 +552,53 @@ export function resetClickedUi() {
 
 // 게임 오버 애니메이션이 모두 끝난 후 한 번 호출되는 함수
 export function gameOver() {
-  const textMaterial = new THREE.MeshBasicMaterial({
-    color: 0xff0000,
-    transparent: true,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-    depthTest: false,
-  });
+  // 게임 오버 텍스트와 배경을 2초 후에 표시
+  setTimeout(() => {
+    const textMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      depthTest: false,
+    });
 
-  // Game Over! 라는 텍스트를 씬에 추가
-  const textGeometry = new TextGeometry("Game Over!", {
-    font: loadedFont,
-    size: 100,
-    height: 1,
-    curveSegments: 12,
-  });
-  textGeometry.center();
-  const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-  textMesh.position.set(960, 840, 10); // 화면 중앙에 위치
+    // Game Over! 라는 텍스트를 씬에 추가
+    const textGeometry = new TextGeometry("Game Over!", {
+      font: loadedFont,
+      size: 100,
+      height: 1,
+      curveSegments: 12,
+    });
+    textGeometry.center();
+    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+    textMesh.position.set(960, 840, 13); // 화면 중앙에 위치
 
-  // Score: 점수라는 텍스트를 씬에 추가
-  // 이때 점수는 states.js의 elapsedTime를 이용하여 계산
-  const score = states.elapsedTime;
-  const viewedScore = score.toFixed(2);
-  const scoreTextGeometry = new TextGeometry(`Score: ${viewedScore} seconds`, {
-    font: loadedFont,
-    size: 50,
-    height: 1,
-    curveSegments: 12,
-  });
-  scoreTextGeometry.center();
-  const scoreTextMesh = new THREE.Mesh(scoreTextGeometry, textMaterial);
-  scoreTextMesh.position.set(960, 720, 10); // 화면 중앙 위에 위치
+    // 텍스트 뒤에 반투명한 어두운 배경 추가
+    const backgroundGeometry = new THREE.PlaneGeometry(1920, 1080); // 화면 전체 크기
+    const backgroundMaterial = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.4
+    });
+    const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
+    backgroundMesh.position.set(960, 540, 9); // 화면 중앙에 위치 (1080/2 = 540)
+    scene.add(backgroundMesh);
+    scene.add(textMesh);
 
-  scene.add(textMesh);
-  scene.add(scoreTextMesh);
+    // Score: 점수라는 텍스트를 씬에 추가
+    // 이때 점수는 states.js의 elapsedTime를 이용하여 계산
+    const score = states.elapsedTime;
+    const viewedScore = score.toFixed(2);
+    const scoreTextGeometry = new TextGeometry(`Score: ${viewedScore} seconds`, {
+      font: loadedFont,
+      size: 50,
+      height: 1,
+      curveSegments: 12,
+    });
+    scoreTextGeometry.center();
+    const scoreTextMesh = new THREE.Mesh(scoreTextGeometry, textMaterial);
+    scoreTextMesh.position.set(960, 720, 10); // 화면 중앙 위에 위치
+
+    scene.add(scoreTextMesh);
+  }, 2500); // 2초 지연
 }
