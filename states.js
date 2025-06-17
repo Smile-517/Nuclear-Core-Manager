@@ -205,7 +205,7 @@ function _gameStart() {
 
 // 일정 온도를 넘어 핵이 폭발하는 조건이 만족될 때 호출되는 함수
 function _explodeNuke() {
-  if (isNukeExploded) return;
+  if (isNukeExploded || isGameOver) return; // 이미 게임 오버 상태면 리턴
   isNukeExploded = true; // 핵 폭발로 인한 게임 오버
   _gameOver();
   console.log(
@@ -217,7 +217,7 @@ function _explodeNuke() {
 
 // 정전이 일어나는 조건이 만족될 때 호출되는 함수
 function _powerOutage() {
-  if (isPowerOutage) return;
+  if (isPowerOutage || isGameOver) return; // 이미 게임 오버 상태면 리턴
   isPowerOutage = true; // 정전으로 인한 게임 오버
   _gameOver();
   console.log(
@@ -232,7 +232,6 @@ function _powerOutage() {
 }
 
 // 게임이 오버되는 조건을 만족할 때 호출되는 함수
-// 첫 줄의 return 때문에 최초의 게임 오버일 때만 실행된다.
 function _gameOver() {
   if (isGameOver) return; // 이미 게임 오버 상태라면 무시
   isGameOver = true;
@@ -240,4 +239,5 @@ function _gameOver() {
   elapsedTime = gameEndTime - gameStartTime; // 게임이 시작된 후 경과 시간 계산
   console.log("Game Over! Elapsed time: " + elapsedTime.toFixed(2) + " seconds");
   uiClass.gameOver();
+  
 }

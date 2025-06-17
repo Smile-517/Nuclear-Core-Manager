@@ -28,6 +28,10 @@ mouseMove.init();
 nukeScene.initUi();
 
 const intervalId = setInterval(() => {
+  if (states.isGameOver) {
+    clearInterval(intervalId); // 게임 오버 시 interval 중지
+    return;
+  }
   nukeScene.tick();
   states.tick();
 }, 1000 / TICKS_PER_SECOND);

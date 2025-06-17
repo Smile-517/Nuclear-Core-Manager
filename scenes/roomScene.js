@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RENDER_DEBUG } from "../params.js";
 import * as controls from "../controls.js";
 import * as renderClass from "../renderClass.js";
+import * as states from "../states.js";
 import { showLoading, hideLoading } from '../main.js';
 
 // 객체 내부 변수들
@@ -10,22 +11,27 @@ export let scene;
 export let camera;
 export let pointLight;
 let gltfLoader;
-// let floor;
 let axesHelper;
 let pointLightHelper;
 let mixer;
-let clock = new THREE.Clock();  // 애니메이션 시간을 추적하기 위한 클록 추가
+let clock = new THREE.Clock();
 let monitorMixers = [];
+let robot;
+let originalModels = []; // 원래 모델들을 저장할 배열
+
+let isDeathSequenceStarted = false;
+let deathSequenceTimer = 0;
+let colorBars;
 
 export function init() {
+  // init 함수는 제공해주신 코드와 동일합니다.
   // scene
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xd0e0f0);
 
   // camera
   camera = new THREE.PerspectiveCamera();
-  camera.position.set(0, 2, 7);
-  camera.lookAt(0, 5, 0);
+  camera.position.set(0, 2, -8.5);
   camera.updateProjectionMatrix();
   scene.add(camera);
 
@@ -39,7 +45,7 @@ export function init() {
       const rotation = camera.rotation;
       const target = new THREE.Vector3();
       camera.getWorldDirection(target);
-      target.multiplyScalar(10).add(camera.position); // 카메라가 바라보는 방향으로 10단위 앞의 지점
+      target.multiplyScalar(10).add(camera.position);
 
       console.log('Camera Position:', {
         x: position.x.toFixed(2),
@@ -60,25 +66,25 @@ export function init() {
   });
 
   // ambient light (기본 조명)
-  const ambientLight = new THREE.AmbientLight(0xc5d1eb, 0.25); // 약한 기본 조명
+  const ambientLight = new THREE.AmbientLight(0xc5d1eb, 0.25);
   scene.add(ambientLight);
 
   // point light (방 안의 조명)
   pointLight = new THREE.PointLight(0xffffff, 100.0);
-  pointLight.position.set(0, 5, -1); // 방 안의 조명 위치 설정
+  pointLight.position.set(0, 5, -1);
   pointLight.distance = 6.5;
   pointLight.decay = 1.5;
-  pointLight.castShadow = true; // 그림자 생성
+  pointLight.castShadow = true;
   scene.add(pointLight);
 
   // 방
-  const roomGeometry = new THREE.BoxGeometry(15, 15, 15);  // 정육면체로 변경
+  const roomGeometry = new THREE.BoxGeometry(15, 15, 15);
   const roomMaterial = new THREE.MeshStandardMaterial({ 
     color: 0x868e96,
-    side: THREE.BackSide  // 안쪽이 보이도록 설정
+    side: THREE.BackSide
   });
   const room = new THREE.Mesh(roomGeometry, roomMaterial);
-  room.position.set(0, 7.5, 0);  // 방의 중심을 y=10으로 설정
+  room.position.set(0, 7.5, 0);
   room.receiveShadow = true;
   scene.add(room);
 
@@ -111,120 +117,154 @@ export function init() {
 
   // 모든 모델을 동시에 로드
   Promise.all([
-    // 로봇 모델
     loadModel('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/RobotExpressive/RobotExpressive.glb', {
-      position: [0, 0.3, 0.15],
-      scale: [0.3, 0.3, 0.3],
-      rotation: Math.PI
+      position: [0, 0.3, 0.15], scale: [0.3, 0.3, 0.3], rotation: Math.PI
     }),
-    // 의자 모델
     loadModel('./assets/models/office chair.glb', {
-      position: [0, 0, 0.5],
-      scale: [1.1, 1.1, 1.1],
-      rotation: Math.PI
+      position: [0, 0, 0.5], scale: [1.1, 1.1, 1.1], rotation: Math.PI
     }),
-    // 책상 모델
     loadModel('./assets/models/computer_desk.glb', {
-      position: [0, 0, 0],
-      scale: [0.015, 0.015, 0.015],
-      rotation: 0
-    }),
-    // 모니터 모델
-    loadModel('./assets/models/sci_fi_monitor.glb', {
-      position: [0, 1.5, -1],
-      scale: [5.0, 5.0, 5.0],
-      rotation: 0
+      position: [0, 0, 0], scale: [0.015, 0.015, 0.015], rotation: 0
     }),
     loadModel('./assets/models/sci_fi_monitor.glb', {
-      position: [-1.5, 1.5, -1],
-      scale: [5.0, 5.0, 5.0],
-      rotation: 0
+      position: [0, 1.5, -1], scale: [5.0, 5.0, 5.0], rotation: 0
     }),
     loadModel('./assets/models/sci_fi_monitor.glb', {
-      position: [1.5, 1.5, -1],
-      scale: [5.0, 5.0, 5.0],
-      rotation: 0
+      position: [-1.5, 1.5, -1], scale: [5.0, 5.0, 5.0], rotation: 0
     }),
     loadModel('./assets/models/sci_fi_monitor.glb', {
-      position: [-0.75, 2.3, -1],
-      scale: [5.0, 5.0, 5.0],
-      rotation: 0
+      position: [1.5, 1.5, -1], scale: [5.0, 5.0, 5.0], rotation: 0
     }),
     loadModel('./assets/models/sci_fi_monitor.glb', {
-      position: [0.75, 2.3, -1],
-      scale: [5.0, 5.0, 5.0],
-      rotation: 0
+      position: [-0.75, 2.3, -1], scale: [5.0, 5.0, 5.0], rotation: 0
     }),
-  ]).then(([robot, chair, desk, monitor1, monitor2, monitor3, monitor4, monitor5]) => {
-    // 로봇 애니메이션 설정
+    loadModel('./assets/models/sci_fi_monitor.glb', {
+      position: [0.75, 2.3, -1], scale: [5.0, 5.0, 5.0], rotation: 0
+    }),
+  ]).then(([robotResult, chair, desk, monitor1, monitor2, monitor3, monitor4, monitor5]) => {
+    robot = robotResult;
+    originalModels = [chair, desk, monitor1, monitor2, monitor3, monitor4, monitor5];
+    
     if (robot && robot.model && robot.gltf && robot.gltf.animations) {
       mixer = new THREE.AnimationMixer(robot.model);
-      const animations = robot.gltf.animations;
-      if (animations && animations.length > 0) {
-        const sittingClip = animations.find(clip => clip.name === 'Sitting');
-        if (sittingClip) {
-          const action = mixer.clipAction(sittingClip);
-          action.setLoop(THREE.LoopOnce);
-          action.clampWhenFinished = true;
-          action.play();
-        }
+      const sittingClip = robot.gltf.animations.find(clip => clip.name === 'Sitting');
+      if (sittingClip) {
+        const action = mixer.clipAction(sittingClip);
+        action.setLoop(THREE.LoopOnce);
+        action.clampWhenFinished = true;
+        action.play();
       }
     }
 
-    // 모니터 애니메이션 설정
-    [monitor1, monitor2, monitor3, monitor4, monitor5].forEach((monitor, index) => {
-      if (monitor && monitor.model && monitor.gltf && monitor.gltf.animations) {
+    [monitor1, monitor2, monitor3, monitor4, monitor5].forEach((monitor) => {
+      if (monitor && monitor.model && monitor.gltf && monitor.gltf.animations.length > 0) {
         const monitorMixer = new THREE.AnimationMixer(monitor.model);
-        const animations = monitor.gltf.animations;
-        
-        if (animations && animations.length > 0) {
-          const action = monitorMixer.clipAction(animations[0]);
-          action.setLoop(THREE.LoopRepeat);
-          action.timeScale = Math.random() * 0.5 + 1;  // 애니메이션 속도 조절
-          
-          // 랜덤한 시작 시간 설정 (0~2초 사이)
-          const startTime = Math.random() * 2;
-          action.startTime = startTime;
-          action.play();
-          
-          monitorMixers.push(monitorMixer);
-        }
+        const action = monitorMixer.clipAction(monitor.gltf.animations[0]);
+        action.setLoop(THREE.LoopRepeat);
+        action.time = Math.random() * action.getClip().duration;
+        action.timeScale = 0.8 + Math.random() * 0.4;
+        action.play();
+        monitorMixers.push(monitorMixer);
       }
     });
 
-    // 로딩 완료
     hideLoading();
   }).catch(error => {
     console.error('Error loading models:', error);
-    // 에러 발생 시에도 로딩 화면 숨기기
     hideLoading();
   });
 
-  // 디버그 모드일 때만 헬퍼 추가
   if (RENDER_DEBUG) {
-    // 축 헬퍼 (월드 기준 XYZ 축 표시)
     axesHelper = new THREE.AxesHelper(5);
     scene.add(axesHelper);
-
-    // point light 헬퍼 (조명 위치 시각화)
     pointLightHelper = new THREE.PointLightHelper(pointLight, 1);
     scene.add(pointLightHelper);
   }
 }
 
 export function update() {
-  const delta = clock.getDelta();
+    const delta = clock.getDelta();
 
-  if (mixer) {
-    mixer.update(delta);
-  }
+    // 게임 오버 연출 시작 (단 한 번만 실행)
+    if (states.isNukeExploded && !isDeathSequenceStarted) {
+        isDeathSequenceStarted = true; // 플래그를 올려 다시는 이 코드가 실행되지 않게 함
+        
+        // 진행 중이던 모든 애니메이션 정지
+        monitorMixers.forEach(mixer => mixer.stopAllAction());
+        if (mixer) mixer.stopAllAction();
 
-  // 모니터 애니메이션 업데이트
-  if (monitorMixers && monitorMixers.length > 0) {
-    monitorMixers.forEach(mixer => {
-      if (mixer) {
+        // 먼저 다른 모델들을 제거
+        originalModels.forEach(modelData => {
+            if (modelData && modelData.model) {
+                scene.remove(modelData.model);
+                modelData.model.traverse(child => {
+                    if (child.isMesh) {
+                        child.geometry.dispose();
+                        if(child.material.map) child.material.map.dispose();
+                        child.material.dispose();
+                    }
+                });
+            }
+        });
+        originalModels = [];
+
+        // 그 다음 SMPTE 컬러바 생성 및 표시
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load('assets/textures/SMPTE_Color_Bars.png', (texture) => {
+            // 화면을 덮는 평면을 카메라의 자식으로 추가하여 항상 화면 앞에 보이게 함
+            const planeHeight = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2) * 3;
+            const planeWidth = planeHeight * camera.aspect;
+            const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                depthTest: false,
+                depthWrite: false
+            });
+            colorBars = new THREE.Mesh(geometry, material);
+            colorBars.position.set(0, 0, -3); // 카메라 로컬 위치에서 3만큼 앞에 배치
+            camera.add(colorBars); // 카메라의 자식으로 추가
+        });
+    }
+
+    // 게임 오버 연출 (타이머 사용)
+    if (isDeathSequenceStarted && deathSequenceTimer >= 0) {
+        deathSequenceTimer += delta; // 델타 시간을 더해 타이머 진행
+
+        // 1초가 지나면 다음 단계 실행
+        if (deathSequenceTimer > 1.0) {
+            // 컬러바 제거 및 리소스 정리
+            if (colorBars) {
+                camera.remove(colorBars);
+                colorBars.geometry.dispose();
+                if (colorBars.material.map) colorBars.material.map.dispose();
+                colorBars.material.dispose();
+                colorBars = null;
+            }
+
+            // 로봇 위치 조정 및 Death 애니메이션 재생
+            if (robot && robot.model && mixer) {
+                robot.model.position.set(0, 0, 0);
+                
+                const deathClip = robot.gltf.animations.find(clip => clip.name === 'Death');
+                if (deathClip) {
+                    const action = mixer.clipAction(deathClip);
+                    action.setLoop(THREE.LoopOnce);
+                    action.clampWhenFinished = true;
+                    action.play();
+                }
+            }
+
+            // 타이머를 비활성화하여 이 블록이 더 이상 실행되지 않게 함
+            deathSequenceTimer = -1;
+        }
+    }
+    
+    // 항상 애니메이션 믹서 업데이트
+    if (mixer) {
         mixer.update(delta);
-      }
-    });
-  }
+    }
+    // 게임 중일 때만 모니터 애니메이션 업데이트
+    if (!states.isGameOver) {
+        monitorMixers.forEach(mixer => mixer.update(delta));
+    }
 }
