@@ -77,6 +77,10 @@ export function settingOrbitControls(renderer) {
   // 초기에는 비활성화 상태로 시작
   roomOrbitControls.enableRotate = false;
   roomOrbitControls.enableZoom = false;
+
+  // target 설정을 유효하게 하기 위한 업데이트
+  nukeOrbitControls.update();
+  roomOrbitControls.update();
 }
 
 function _addStartupListener() {

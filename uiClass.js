@@ -571,7 +571,7 @@ export function gameOver() {
     });
     textGeometry.center();
     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-    textMesh.position.set(960, 840, 13); // 화면 중앙에 위치
+    textMesh.position.set(960, 840, 113); // 화면 중앙에 위치
 
     // 텍스트 뒤에 반투명한 어두운 배경 추가
     const backgroundGeometry = new THREE.PlaneGeometry(1920, 1080); // 화면 전체 크기
@@ -581,7 +581,7 @@ export function gameOver() {
       opacity: 0.4
     });
     const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
-    backgroundMesh.position.set(960, 540, 9); // 화면 중앙에 위치 (1080/2 = 540)
+    backgroundMesh.position.set(960, 540, 109); // 화면 중앙에 위치 (1080/2 = 540)
     scene.add(backgroundMesh);
     scene.add(textMesh);
 
@@ -597,7 +597,7 @@ export function gameOver() {
     });
     scoreTextGeometry.center();
     const scoreTextMesh = new THREE.Mesh(scoreTextGeometry, textMaterial);
-    scoreTextMesh.position.set(960, 720, 10); // 화면 중앙 위에 위치
+    scoreTextMesh.position.set(960, 720, 110); // 화면 중앙 위에 위치
 
     scene.add(scoreTextMesh);
   }, 2500); // 2초 지연
