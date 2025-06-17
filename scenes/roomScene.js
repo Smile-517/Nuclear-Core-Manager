@@ -121,6 +121,13 @@ export function init() {
     originalModels = [chair, desk, monitor1, monitor2, monitor3, monitor4, monitor5];
     monitorModels = [monitor1, monitor2, monitor3, monitor4, monitor5];
     
+    desk.model.traverse(child => {
+      if (child.isMesh) {
+        child.material.depthTest = true; // 깊이 테스트 활성화
+        child.material.depthWrite = true; // 깊이 쓰기 활성화
+      }
+    })
+
     if (robot && robot.model && robot.gltf && robot.gltf.animations) {
       mixer = new THREE.AnimationMixer(robot.model);
       const sittingClip = robot.gltf.animations.find(clip => clip.name === 'Sitting');
