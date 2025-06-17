@@ -41,8 +41,8 @@ export function settingOrbitControls(renderer) {
   nukeOrbitControls.zoomSpeed = 1.2; // 줌 속도 조정
   nukeOrbitControls.enablePan = false; // 팬 기능 비활성화
   nukeOrbitControls.target.set(0, 2, 0); // 초기 위치 설정
-  nukeOrbitControls.minDistance = 1;
-  nukeOrbitControls.maxDistance = 32;
+  nukeOrbitControls.minDistance = 3;
+  nukeOrbitControls.maxDistance = 17;
   
   // 성능 개선을 위한 추가 설정
   nukeOrbitControls.screenSpacePanning = false; // 카메라 공간 기준 이동
@@ -60,8 +60,8 @@ export function settingOrbitControls(renderer) {
   roomOrbitControls.zoomSpeed = 1.2; // 줌 속도 조정
   roomOrbitControls.enablePan = false; // 팬 기능 비활성화
   roomOrbitControls.target.set(0, 2, 0); // 초기 위치 설정
-  roomOrbitControls.minDistance = 1;
-  roomOrbitControls.maxDistance = 32;
+  roomOrbitControls.minDistance = 6;
+  roomOrbitControls.maxDistance = 10;
   
   // 성능 개선을 위한 추가 설정
   roomOrbitControls.screenSpacePanning = false; // 카메라 공간 기준 이동
