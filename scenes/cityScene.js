@@ -1,14 +1,14 @@
 import * as THREE from "three";
-
 import * as states from "../states.js";
-
 import { RENDER_DEBUG, LATITUDE } from "../params.js";
+import { createNoise2D } from 'simplex-noise';
+// import GLBLoader from '../glbLoader.js';
 
 // 객체 내부 변수들
 export let scene;
 export let camera;
 let dirLight;
-let cube;
+let waterMesh;
 let axesHelper;
 let dirLightHelper;
 
@@ -18,26 +18,30 @@ export function init() {
   scene.background = new THREE.Color(0xd0e0f0);
 
   // camera
-  camera = new THREE.PerspectiveCamera();
-  camera.position.set(2, 3, -4);
-  camera.lookAt(new THREE.Vector3(0, 0, 0));
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+  camera.position.set(30, 25, 15);
+  camera.lookAt(new THREE.Vector3(0, -10, 0));
   camera.updateProjectionMatrix();
   scene.add(camera);
 
   // directional light (태양 광원 역할)
   // 동쪽: +X, 서쪽: -X, 남쪽: +Z, 북쪽: -Z
-  dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+  dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
   // 초기에는 동쪽에서 빛이 오도록 설정
-  dirLight.position.set(1, 0, 0);
+  dirLight.position.set(50, 50, 50);
   dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 500;
   scene.add(dirLight);
 
-  // 큐브 (샘플 오브젝트)
-  const cubeGeometry = new THREE.BoxGeometry();
-  const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0xffeedd });
-  cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-  cube.castShadow = true;
-  scene.add(cube);
+  // ambient light (기본 조명)
+  const ambientLight = new THREE.AmbientLight(0xc5d1eb, 0.25);
+  scene.add(ambientLight);
+
+  createIsland();
+  createWater();
 
   // 디버그 모드일 때만 헬퍼 추가
   if (RENDER_DEBUG) {
@@ -49,6 +53,81 @@ export function init() {
     dirLightHelper = new THREE.DirectionalLightHelper(dirLight, 1);
     scene.add(dirLightHelper);
   }
+}
+
+function createIsland() {
+  const noise = createNoise2D();
+  const islandSize = 60;
+  const segments = 128;
+  const peakHeight = 15;
+  const geometry = new THREE.PlaneGeometry(islandSize, islandSize, segments, segments);
+  const positionAttribute = geometry.attributes.position;
+  const colors = [];
+
+  const sandColor = new THREE.Color(0xc2b280);
+  const grassColor = new THREE.Color(0x4caf50);
+  const rockColor = new THREE.Color(0x808080);
+  const snowColor = new THREE.Color(0xffffff);
+
+  for (let i = 0; i < positionAttribute.count; i++) {
+    const x = positionAttribute.getX(i);
+    const y = positionAttribute.getY(i);
+
+    // 해안선에 노이즈를 추가하여 울퉁불퉁하게 만듦
+    const angle = Math.atan2(y, x); // 각 꼭짓점의 중심으로부터의 각도 계산
+    const radiusNoise = noise(Math.cos(angle) * 2, Math.sin(angle) * 2) * 3.0; // 각도를 기반으로 노이즈 생성
+    const distanceToCenter = Math.sqrt(x * x + y * y) + radiusNoise; // 원래 거리에 노이즈를 더해 해안선을 왜곡
+
+    // 중앙이 높고 가장자리가 낮은 기본 돔 모양 생성
+    const normalizedDistance = distanceToCenter / (islandSize / 2);
+    const saturatedDistance = Math.max(0, Math.min(1, normalizedDistance));
+    const islandFalloff = Math.pow(1.0 - saturatedDistance, 1.5);
+    let finalHeight = islandFalloff * peakHeight;
+    
+    // 섬 표면에도 약간의 노이즈를 추가하여 디테일을 살림
+    const surfaceNoise = noise(x / 10, y / 10) * islandFalloff * 2.0;
+    finalHeight += surfaceNoise;
+
+    finalHeight = Math.max(0, finalHeight); // 높이가 0보다 낮아지지 않도록 함
+
+    positionAttribute.setZ(i, finalHeight);
+
+    // 높이에 따라 색상 결정
+    const color = new THREE.Color();
+    if (finalHeight < 1.5) color.copy(sandColor);
+    else if (finalHeight < 7) color.copy(grassColor);
+    else if (finalHeight < 12) color.copy(rockColor);
+    else color.copy(snowColor);
+    colors.push(color.r, color.g, color.b);
+  }
+
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
+
+  const material = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    flatShading: true,
+  });
+
+  const islandMesh = new THREE.Mesh(geometry, material);
+  islandMesh.rotation.x = -Math.PI / 2;
+  islandMesh.receiveShadow = true;
+  scene.add(islandMesh);
+}
+
+function createWater() {
+  const waterGeometry = new THREE.PlaneGeometry(2000, 1000, 64, 64);
+  const waterMaterial = new THREE.MeshStandardMaterial({
+    color: 0x0055aa,
+    transparent: false,
+    opacity: 0.9,
+    roughness: 0.8,
+    metalness: 0.0,
+  });
+  waterMesh = new THREE.Mesh(waterGeometry, waterMaterial);
+  waterMesh.rotation.x = -Math.PI / 2;
+  waterMesh.position.y = 0.5;
+  scene.add(waterMesh);
 }
 
 export function update() {
