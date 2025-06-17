@@ -2,7 +2,7 @@ import * as THREE from "three";
 import * as states from "../states.js";
 import { RENDER_DEBUG, LATITUDE } from "../params.js";
 import { createNoise2D } from 'simplex-noise';
-// import GLBLoader from '../glbLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // 객체 내부 변수들
 export let scene;
@@ -11,6 +11,7 @@ let dirLight;
 let waterMesh;
 let axesHelper;
 let dirLightHelper;
+const loader = new GLTFLoader();
 
 export function init() {
   // scene
@@ -20,7 +21,7 @@ export function init() {
   // camera
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
   camera.position.set(30, 25, 15);
-  camera.lookAt(new THREE.Vector3(0, -10, 0));
+  camera.lookAt(new THREE.Vector3(0, -12, 0));
   camera.updateProjectionMatrix();
   scene.add(camera);
 
@@ -42,6 +43,8 @@ export function init() {
 
   createIsland();
   createWater();
+  createNuclearPowerPlant();
+  createTower();
 
   // 디버그 모드일 때만 헬퍼 추가
   if (RENDER_DEBUG) {
@@ -128,6 +131,53 @@ function createWater() {
   waterMesh.rotation.x = -Math.PI / 2;
   waterMesh.position.y = 0.5;
   scene.add(waterMesh);
+}
+
+function createNuclearPowerPlant() {
+  const material = new THREE.MeshStandardMaterial({ 
+    color: 0xced4da,
+    metalness: 0.2,
+    roughness: 0.6,
+    depthTest: true,
+    depthWrite: true,
+  });
+  const cylinderRadius = 2.5;
+  const cylinderHeight = 4;
+  const cylinderGeometry = new THREE.CylinderGeometry(cylinderRadius, cylinderRadius, cylinderHeight, 32);
+  const cylinder = new THREE.Mesh(cylinderGeometry, material);
+  cylinder.position.set(17, 4, 8);
+  cylinder.castShadow = true;
+  cylinder.receiveShadow = true;
+  const sphereGeometry = new THREE.SphereGeometry(cylinderRadius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+  const hemisphere = new THREE.Mesh(sphereGeometry, material);
+  hemisphere.position.y = cylinderHeight / 2;
+  cylinder.add(hemisphere);
+  // smoke
+  loader.load('./assets/models/smoke.glb', (gltf) => {
+    const model = gltf.scene;
+    model.position.set(-2, 3.3, 2);
+    model.rotation.set(0, Math.PI*0.85, 0);
+    model.scale.set(0.6, 0.6, 0.6);
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.material.transparent = true;
+        child.material.opacity = 0.9;
+        child.material.depthWrite = true;
+        child.material.depthTest = true;
+      }
+    });
+    cylinder.add(model);
+  });
+  scene.add(cylinder);
+}
+
+function createTower() {
+  loader.load('./assets/models/buildings.glb', (gltf) => {
+    const model = gltf.scene;
+    model.position.set(10, 0, 0);
+    // model.scale.set(0.1, 0.1, 0.1);
+    scene.add(model);
+  });
 }
 
 export function update() {

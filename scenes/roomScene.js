@@ -92,10 +92,10 @@ export function init() {
 
   // 모든 모델을 동시에 로드
   Promise.all([
-    loadModel('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/RobotExpressive/RobotExpressive.glb', {
+    loadModel('./assets/models/RobotExpressive.glb', {  // 로컬 파일로 변경
       position: [0, 0.3, 0.15], scale: [0.3, 0.3, 0.3], rotation: Math.PI
     }),
-    loadModel('./assets/models/office chair.glb', {
+    loadModel('./assets/models/Office Chair.glb', {  // 파일명 수정
       position: [0, 0, 0.5], scale: [1.1, 1.1, 1.1], rotation: Math.PI
     }),
     loadModel('./assets/models/computer_desk.glb', {
