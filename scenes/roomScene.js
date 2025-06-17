@@ -18,10 +18,12 @@ let clock = new THREE.Clock();
 let monitorMixers = [];
 let robot;
 let originalModels = []; // 원래 모델들을 저장할 배열
+let monitorModels = [];
 
 let isDeathSequenceStarted = false;
 let deathSequenceTimer = 0;
 let colorBars;
+let hasPlayedThumbsUp = false; // ThumbsUp 애니메이션 재생 여부를 추적
 
 export function init() {
   // init 함수는 제공해주신 코드와 동일합니다.
@@ -37,33 +39,6 @@ export function init() {
 
   // OrbitControls 설정
   controls.settingOrbitControls(renderClass.renderer);
-
-  // 디버깅용 카메라 위치 추적을 위한 이벤트 리스너 등록
-  document.addEventListener('keydown', (event) => {
-    if (event.key.toLowerCase() === 'p') {
-      const position = camera.position;
-      const rotation = camera.rotation;
-      const target = new THREE.Vector3();
-      camera.getWorldDirection(target);
-      target.multiplyScalar(10).add(camera.position);
-
-      console.log('Camera Position:', {
-        x: position.x.toFixed(2),
-        y: position.y.toFixed(2),
-        z: position.z.toFixed(2)
-      });
-      console.log('Camera Rotation:', {
-        x: (rotation.x * 180 / Math.PI).toFixed(2) + '°',
-        y: (rotation.y * 180 / Math.PI).toFixed(2) + '°',
-        z: (rotation.z * 180 / Math.PI).toFixed(2) + '°'
-      });
-      console.log('Camera Target:', {
-        x: target.x.toFixed(2),
-        y: target.y.toFixed(2),
-        z: target.z.toFixed(2)
-      });
-    }
-  });
 
   // ambient light (기본 조명)
   const ambientLight = new THREE.AmbientLight(0xc5d1eb, 0.25);
@@ -144,6 +119,7 @@ export function init() {
   ]).then(([robotResult, chair, desk, monitor1, monitor2, monitor3, monitor4, monitor5]) => {
     robot = robotResult;
     originalModels = [chair, desk, monitor1, monitor2, monitor3, monitor4, monitor5];
+    monitorModels = [monitor1, monitor2, monitor3, monitor4, monitor5];
     
     if (robot && robot.model && robot.gltf && robot.gltf.animations) {
       mixer = new THREE.AnimationMixer(robot.model);
@@ -185,10 +161,77 @@ export function init() {
 export function update() {
     const delta = clock.getDelta();
 
+    // 온도에 따른 로봇 표정 변화
+    if (robot && robot.model && robot.gltf && robot.gltf.animations) {
+      const ratio = states.coreTemp / 2000;
+      if (ratio <= 0.75) {
+        // 75% 이하일 때는 surprised를 0으로 유지
+        if (robot.morphTargetDictionary && robot.morphTargetDictionary.surprised !== undefined) {
+          robot.model.morphTargetInfluences[robot.morphTargetDictionary.surprised] = 0;
+        }
+      } else {
+        // 75% 이상일 때는 온도에 따라 surprised 값을 증가
+        const t = (ratio - 0.75) / 0.25; // 0에서 1 사이의 값으로 정규화
+        if (robot.morphTargetDictionary && robot.morphTargetDictionary.surprised !== undefined) {
+          robot.model.morphTargetInfluences[robot.morphTargetDictionary.surprised] = t;
+        }
+      }
+    }
+
+    // 정전으로 인한 게임 오버일 때 모니터 모델들만 제거
+    if (states.isGameOver && states.isPowerOutage) {
+      // 모든 모니터 애니메이션 중지
+      monitorMixers.forEach(mixer => mixer.stopAllAction());
+      
+      // 모니터 모델들만 제거
+      monitorModels.forEach(modelData => {
+        if (modelData && modelData.model) {
+          scene.remove(modelData.model);
+          modelData.model.traverse(child => {
+            if (child.isMesh) {
+              child.geometry.dispose();
+              if(child.material.map) child.material.map.dispose();
+              child.material.dispose();
+            }
+          });
+        }
+      });
+    }
+
+    // 게임이 시작되면 ThumbsUp 애니메이션 재생
+    if (states.isGameStarted && !hasPlayedThumbsUp && mixer) {
+      hasPlayedThumbsUp = true; // 플래그를 먼저 올려 중복 실행 방지
+      
+      const thumbsUpClip = robot.gltf.animations.find(clip => clip.name === 'ThumbsUp');
+      if (thumbsUpClip) {
+          mixer.stopAllAction(); // 현재 애니메이션(Sitting)을 멈춤
+          const thumbsUpAction = mixer.clipAction(thumbsUpClip);
+          thumbsUpAction.setLoop(THREE.LoopOnce);
+          thumbsUpAction.clampWhenFinished = true;
+          thumbsUpAction.play();
+
+          const onThumbsUpFinished = (event) => {
+              // 이 이벤트가 ThumbsUp 애니메이션에 의해서만 발생했는지 확인
+              if (event.action === thumbsUpAction) {
+                  const sittingClip = robot.gltf.animations.find(clip => clip.name === 'Sitting');
+                  if (sittingClip) {
+                      mixer.stopAllAction(); // ThumbsUp을 멈추고
+                      const sittingAction = mixer.clipAction(sittingClip);
+                      sittingAction.setLoop(THREE.LoopOnce);
+                      sittingAction.play();
+                  }
+                  mixer.removeEventListener('finished', onThumbsUpFinished);
+              }
+          };
+          mixer.addEventListener('finished', onThumbsUpFinished);
+      }
+  }
+
     // 게임 오버 연출 시작 (단 한 번만 실행)
     if (states.isNukeExploded && !isDeathSequenceStarted) {
         isDeathSequenceStarted = true; // 플래그를 올려 다시는 이 코드가 실행되지 않게 함
-        
+        deathSequenceTimer = 0;
+
         // 진행 중이던 모든 애니메이션 정지
         monitorMixers.forEach(mixer => mixer.stopAllAction());
         if (mixer) mixer.stopAllAction();
@@ -244,6 +287,7 @@ export function update() {
             // 로봇 위치 조정 및 Death 애니메이션 재생
             if (robot && robot.model && mixer) {
                 robot.model.position.set(0, 0, 0);
+                robot.model.scale.set(0.4, 0.4, 0.4);
                 
                 const deathClip = robot.gltf.animations.find(clip => clip.name === 'Death');
                 if (deathClip) {
