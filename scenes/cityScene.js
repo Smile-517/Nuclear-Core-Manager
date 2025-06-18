@@ -11,6 +11,8 @@ export let camera;
 let dirLight;
 let axesHelper;
 let dirLightHelper;
+let oceanMixer;
+let clock = new THREE.Clock();
 const loader = new GLTFLoader();
 let lastTime = 0;
 
@@ -131,8 +133,8 @@ function createIsland() {
 function createWater() {
   loader.load('./assets/models/ocean.glb', (gltf) => {
     const model = gltf.scene;
-    model.position.set(0, 0.5, 0);
-    model.scale.set(40, 40, 40);
+    model.position.set(-40, 0.5, -40);
+    model.scale.set(150, 150, 150);
     
     // 모델의 모든 메시에 대해 설정
     model.traverse((child) => {
@@ -154,12 +156,9 @@ function createWater() {
 
     // 애니메이션 설정
     if (gltf.animations && gltf.animations.length) {
-      const mixer = new THREE.AnimationMixer(model);
-      const action = mixer.clipAction(gltf.animations[0]);
+      oceanMixer = new THREE.AnimationMixer(model);
+      const action = oceanMixer.clipAction(gltf.animations[0]);
       action.play();
-      
-      // 애니메이션 업데이트를 위한 변수 추가
-      window.oceanMixer = mixer;
     }
     
     scene.add(model);
@@ -228,9 +227,9 @@ export function update(time) {
   const deltaTime = (time - lastTime) / 1000;
   lastTime = time;
 
-  // 애니메이션 업데이트
-  if (window.oceanMixer) {
-    window.oceanMixer.update(deltaTime);
+  // 바다 애니메이션 업데이트
+  if (oceanMixer) {
+    oceanMixer.update(deltaTime);
   }
 
   // 최대 고도(고도각) 계산 (Latitude 기반)
