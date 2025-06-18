@@ -3,15 +3,16 @@ import * as states from "../states.js";
 import { RENDER_DEBUG, LATITUDE } from "../params.js";
 import { createNoise2D } from 'simplex-noise';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Water } from 'three/addons/objects/Water.js';
 
 // 객체 내부 변수들
 export let scene;
 export let camera;
 let dirLight;
-let waterMesh;
 let axesHelper;
 let dirLightHelper;
 const loader = new GLTFLoader();
+let lastTime = 0;
 
 export function init() {
   // scene
@@ -21,7 +22,7 @@ export function init() {
   // camera
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
   camera.position.set(30, 25, 15);
-  camera.lookAt(new THREE.Vector3(0, -12, 0));
+  camera.lookAt(new THREE.Vector3(0, -11, 0));
   camera.updateProjectionMatrix();
   scene.add(camera);
 
@@ -35,16 +36,21 @@ export function init() {
   dirLight.shadow.mapSize.height = 2048;
   dirLight.shadow.camera.near = 0.5;
   dirLight.shadow.camera.far = 500;
+  dirLight.shadow.camera.left = -40;
+  dirLight.shadow.camera.right = 40;
+  dirLight.shadow.camera.top = 40;
+  dirLight.shadow.camera.bottom = -40;
+  dirLight.target.position.set(0, 0, 0);
   scene.add(dirLight);
 
   // ambient light (기본 조명)
-  const ambientLight = new THREE.AmbientLight(0xc5d1eb, 0.25);
+  const ambientLight = new THREE.AmbientLight(0xc5d1eb, 0.3);
   scene.add(ambientLight);
-
+  scene.background = new THREE.Color(0x000029);
+  
   createIsland();
   createWater();
   createNuclearPowerPlant();
-  createTower();
 
   // 디버그 모드일 때만 헬퍼 추가
   if (RENDER_DEBUG) {
@@ -110,27 +116,53 @@ function createIsland() {
   const material = new THREE.MeshStandardMaterial({
     vertexColors: true,
     flatShading: true,
+    depthTest: true,
+    depthWrite: true,
   });
 
   const islandMesh = new THREE.Mesh(geometry, material);
   islandMesh.rotation.x = -Math.PI / 2;
   islandMesh.receiveShadow = true;
+  islandMesh.castShadow = true;
   scene.add(islandMesh);
 }
 
 function createWater() {
-  const waterGeometry = new THREE.PlaneGeometry(2000, 1000, 64, 64);
-  const waterMaterial = new THREE.MeshStandardMaterial({
-    color: 0x0055aa,
-    transparent: false,
-    opacity: 0.9,
-    roughness: 0.8,
-    metalness: 0.0,
+  loader.load('./assets/models/ocean.glb', (gltf) => {
+    const model = gltf.scene;
+    model.position.set(0, 0.5, 0);
+    model.scale.set(40, 40, 40);
+    
+    // 모델의 모든 메시에 대해 설정
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.material.transparent = false;
+        child.material.depthWrite = true;
+        child.material.depthTest = true;
+        child.material.side = THREE.DoubleSide;
+        
+        // specular 강도 조절
+        if (child.material.specular) {
+          child.material.specular.set(0x111111);  // specular 색상을 어둡게
+        }
+        child.material.shininess = 10;
+        child.material.metalness = 0.1;
+        child.material.roughness = 0.8;
+      }
+    });
+
+    // 애니메이션 설정
+    if (gltf.animations && gltf.animations.length) {
+      const mixer = new THREE.AnimationMixer(model);
+      const action = mixer.clipAction(gltf.animations[0]);
+      action.play();
+      
+      // 애니메이션 업데이트를 위한 변수 추가
+      window.oceanMixer = mixer;
+    }
+    
+    scene.add(model);
   });
-  waterMesh = new THREE.Mesh(waterGeometry, waterMaterial);
-  waterMesh.rotation.x = -Math.PI / 2;
-  waterMesh.position.y = 0.5;
-  scene.add(waterMesh);
 }
 
 function createNuclearPowerPlant() {
@@ -171,16 +203,15 @@ function createNuclearPowerPlant() {
   scene.add(cylinder);
 }
 
-function createTower() {
-  loader.load('./assets/models/buildings.glb', (gltf) => {
-    const model = gltf.scene;
-    model.position.set(10, 0, 0);
-    // model.scale.set(0.1, 0.1, 0.1);
-    scene.add(model);
-  });
-}
+export function update(time) {
+  const deltaTime = (time - lastTime) / 1000;
+  lastTime = time;
 
-export function update() {
+  // 애니메이션 업데이트
+  if (window.oceanMixer) {
+    window.oceanMixer.update(deltaTime);
+  }
+
   // 최대 고도(고도각) 계산 (Latitude 기반)
   const maxElevationRad = (90 - LATITUDE) * (Math.PI / 180);
 
