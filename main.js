@@ -60,6 +60,9 @@ showLoading();
 
 function animate() {
   controls.update();
+  if (nukeScene.camera.position.y < 0) {
+    nukeScene.camera.position.y = 0; // 카메라가 바닥 아래로 내려가지 않도록 제한
+  }
   cityScene.update();
   uiClass.updateBars();
   roomScene.update();

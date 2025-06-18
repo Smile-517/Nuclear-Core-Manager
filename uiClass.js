@@ -573,6 +573,7 @@ export function gameOver() {
     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
     textMesh.position.set(960, 540, 113); // 화면 중앙에 위치
 
+
     // 텍스트 뒤에 반투명한 어두운 배경 추가
     const backgroundGeometry = new THREE.PlaneGeometry(1920, 1080); // 화면 전체 크기
     const backgroundMaterial = new THREE.MeshBasicMaterial({
