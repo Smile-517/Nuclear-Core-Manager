@@ -51,11 +51,12 @@ export function init() {
   createIsland();
   createWater();
   createNuclearPowerPlant();
+  createBuilding();
 
   // 디버그 모드일 때만 헬퍼 추가
   if (RENDER_DEBUG) {
     // 축 헬퍼 (월드 기준 XYZ 축 표시)
-    axesHelper = new THREE.AxesHelper(5);
+    axesHelper = new THREE.AxesHelper(50);
     scene.add(axesHelper);
 
     // directional light 헬퍼 (광원 방향 시각화)
@@ -177,7 +178,7 @@ function createNuclearPowerPlant() {
   const cylinderHeight = 4;
   const cylinderGeometry = new THREE.CylinderGeometry(cylinderRadius, cylinderRadius, cylinderHeight, 32);
   const cylinder = new THREE.Mesh(cylinderGeometry, material);
-  cylinder.position.set(17, 4, 8);
+  cylinder.position.set(17.5, 4, 7);
   cylinder.castShadow = true;
   cylinder.receiveShadow = true;
   const sphereGeometry = new THREE.SphereGeometry(cylinderRadius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -187,7 +188,7 @@ function createNuclearPowerPlant() {
   // smoke
   loader.load('./assets/models/smoke.glb', (gltf) => {
     const model = gltf.scene;
-    model.position.set(-2, 3.3, 2);
+    model.position.set(-2.5, 3.3, 2);
     model.rotation.set(0, Math.PI*0.85, 0);
     model.scale.set(0.6, 0.6, 0.6);
     model.traverse((child) => {
@@ -201,6 +202,26 @@ function createNuclearPowerPlant() {
     cylinder.add(model);
   });
   scene.add(cylinder);
+}
+
+function createBuilding() {
+  loader.load('./assets/models/buildings.glb', (gltf) => {
+    const model = gltf.scene;
+    
+    // 모델의 모든 메시에 대해 설정
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        child.material.depthTest = true;
+        child.material.depthWrite = true;
+      }
+    });
+    model.scale.set(0.82, 0.82, 0.82);
+    model.rotation.z = Math.PI/10;
+    model.position.set(23.5, 3, -1);
+    scene.add(model);
+  });
 }
 
 export function update(time) {
