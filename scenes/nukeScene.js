@@ -538,10 +538,10 @@ function _makeNeutron(posX, posY, posZ, vX, vY, vZ) {
 
 export function initUi() {
   uiClass.createButton(
-    1795,
-    440,
-    1845,
-    490,
+    1785,
+    430,
+    1855,
+    500,
     "assets/textures/tmpUi0.png",
     "assets/textures/tmpUi1.png",
     "assets/textures/tmpUi2.png",
